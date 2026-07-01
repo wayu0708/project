@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>จับมือเรียน - Peer Learning Platform</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Kanit:wght=300;400;500;600&display=swap');
+        body { font-family: 'Kanit', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <nav class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-user-group text-2xl"></i>
+                <span class="text-xl font-bold tracking-wide">จับมือเรียน</span>
+            </div>
+            <div class="flex items-center space-x-3 bg-white/20 px-3 py-1.5 rounded-full backdrop-blur-sm">
+                <i class="fa-solid fa-star text-yellow-300"></i>
+                <span class="text-sm font-medium">วายุ (150 XP)</span>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-4xl mx-auto px-4 py-6 mb-20">
+        <div class="mb-6">
+            <h1 class="text-2xl font-bold text-gray-900">สวัสดีตอนสายครับ 👋</h1>
+            <p class="text-gray-500 text-sm">วันนี้มีเรื่องไหนไม่เข้าใจ หรือมีสรุปดีๆ มาแชร์เพื่อนไหม?</p>
+        </div>
+
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6">
+            <h2 class="font-semibold text-gray-700 mb-3"><i class="fa-solid fa-pen-to-square text-indigo-500 mr-2"></i>โพสต์แชร์โน้ต หรือ ถามการบ้าน</h2>
+            <textarea id="postContent" rows="3" class="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 text-sm" placeholder="เขียนคำถาม หรืออธิบายโน้ตสรุปที่ต้องการแชร์..."></textarea>
+            
+            <div class="flex justify-between items-center mt-3">
+                <div class="flex space-x-2">
+                    <select id="postTag" class="text-xs bg-gray-100 border-none rounded-lg p-2 text-gray-600 focus:outline-none">
+                        <option value="#คณิตศาสตร์">#คณิตศาสตร์</option>
+                        <option value="#ภาษาอังกฤษ">#ภาษาอังกฤษ</option>
+                        <option value="#วิทยาศาสตร์">#วิทยาศาสตร์</option>
+                    </select>
+                </div>
+                <button onclick="addPost()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-xl text-sm font-medium transition duration-200 shadow-sm">
+                    โพสต์เลย (+10 XP)
+                </button>
+            </div>
+        </div>
+
+        <div class="flex space-x-4 mb-4 border-b border-gray-200 pb-2">
+            <button class="text-indigo-600 font-medium border-b-2 border-indigo-600 pb-2 px-1 text-sm">ทั้งหมด</button>
+            <button class="text-gray-400 pb-2 px-1 text-sm hover:text-gray-600">คลังสรุปบทเรียน</button>
+            <button class="text-gray-400 pb-2 px-1 text-sm hover:text-gray-600">ถามตอบ Q&A</button>
+        </div>
+
+        <div id="feedContainer" class="space-y-4">
+            <p class="text-center text-gray-400 text-sm py-8">กำลังโหลดข้อมูลจากฐานข้อมูล...</p>
+        </div>
+    </main>
+
+    <script>
+        const SUPABASE_URL = "https://djxvkqxocdowocadzrte.supabase.co"; 
+        const SUPABASE_KEY = "sb_publishable_wZW2fNiTJp5mPcBHChRdXQ_4Hf5EIlv"; 
+
+        // ✅ แก้ไขการเชื่อมต่อให้ถูกต้องตามเวอร์ชัน CDN
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // ฟังก์ชันดึงข้อมูลมาแสดงผล
+        async function fetchPosts() {
+            const { data: posts, error } = await supabaseClient
+                .from('posts')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error('Error fetching posts:', error);
+                document.getElementById('feedContainer').innerHTML = `<p class="text-center text-red-500 text-sm">โหลดข้อมูลไม่สำเร็จ: ${error.message}</p>`;
+                return;
+            }
+
+            const feedContainer = document.getElementById('feedContainer');
+            
+            // ถ้าตารางว่างเปล่า ให้แสดงข้อความแจ้งเตือนแทนค้างหน้าจอโหลด
+            if (!posts || posts.length === 0) {
+                feedContainer.innerHTML = '<p class="text-center text-gray-400 text-sm py-8">ยังไม่มีใครโพสต์เลย มารวมพลังเป็นคนแรกกัน!</p>';
+                return;
+            }
+
+            feedContainer.innerHTML = ''; 
+
+            posts.forEach(post => {
+                const postCard = document.createElement('div');
+                postCard.className = "bg-white p-4 rounded-2xl shadow-sm border border-gray-100";
+                postCard.innerHTML = `
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold">
+                                ${post.username ? post.username[0].toUpperCase() : 'W'}
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-sm text-gray-900">${post.username || 'วายุ'}</h4>
+                                <p class="text-xs text-gray-400">${post.created_at ? new Date(post.created_at).toLocaleTimeString('th-TH') : 'เมื่อสักครู่'}</p>
+                            </div>
+                        </div>
+                        <span class="bg-amber-50 text-amber-600 text-xs px-2.5 py-1 rounded-full font-medium">${post.post_type || 'ถามตอบ Q&A'}</span>
+                    </div>
+                    <p class="text-gray-700 text-sm mb-3">${post.content}</p>
+                    <div class="flex items-center space-x-4 text-xs text-gray-500 border-t border-gray-50 pt-3">
+                        <button onclick="alert('ระบบคอมเมนต์กำลังตามมาในเวอร์ชันถัดไป!')" class="flex items-center space-x-1 hover:text-indigo-500"><i class="fa-regular fa-comment"></i> <span>ช่วยตอบ</span></button>
+                        <span class="text-indigo-500 font-medium ml-auto">${post.tag || '#ทั่วไป'}</span>
+                    </div>
+                `;
+                feedContainer.appendChild(postCard);
+            });
+        }
+
+        // ฟังก์ชันส่งโพสต์ใหม่เข้าตาราง
+        async function addPost() {
+            const content = document.getElementById('postContent').value;
+            const tag = document.getElementById('postTag').value;
+            
+            if (content.trim() === "") {
+                alert("กรุณาพิมพ์ข้อความก่อนโพสต์นะครับ!");
+                return;
+            }
+
+            const { error } = await supabaseClient
+                .from('posts')
+                .insert([
+                    { 
+                        username: 'Wayu', 
+                        content: content, 
+                        tag: tag
+                    }
+                ]);
+
+            if (error) {
+                alert("เกิดข้อผิดพลาดจากฐานข้อมูล: " + error.message);
+                console.error(error);
+            } else {
+                document.getElementById('postContent').value = "";
+                alert("บันทึกเข้าฐานข้อมูลเรียบร้อย! พลังน้ำใจ +10 XP");
+                fetchPosts(); 
+            }
+        }
+
+        window.onload = fetchPosts;
+    </script>
+</body>
+</html>
