@@ -20,30 +20,73 @@
                 <i class="fa-solid fa-user-group text-2xl"></i>
                 <span class="text-xl font-bold tracking-wide">จับมือเรียน</span>
             </div>
-            <div class="flex items-center space-x-3 bg-white/20 px-3 py-1.5 rounded-full backdrop-blur-sm">
-                <i class="fa-solid fa-star text-yellow-300"></i>
-                <span class="text-sm font-medium">วายุ (150 XP)</span>
+            <div class="flex items-center space-x-4">
+                <div id="userInfoDisplay" class="hidden flex items-center space-x-2 bg-white/20 px-3 py-1.5 rounded-full backdrop-blur-sm">
+                    <i class="fa-solid fa-star text-yellow-300"></i>
+                    <span id="currentUserName" class="text-sm font-medium">ผู้ใช้งาน</span>
+                </div>
+                <button id="logoutBtn" onclick="logout()" class="hidden text-xs bg-red-500 hover:bg-red-600 px-2.5 py-1.5 rounded-lg transition">ออกจากระบบ</button>
             </div>
         </div>
     </nav>
 
+    <div id="loginModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 hidden">
+        <div class="bg-white w-full max-w-md p-6 rounded-2xl shadow-xl border border-gray-100">
+            <div class="text-center mb-6">
+                <div class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-3 text-xl">
+                    <i class="fa-solid fa-lock"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-900">ลงทะเบียนเข้าใช้งาน</h3>
+                <p class="text-gray-500 text-xs mt-1">กรอกข้อมูลสั้นๆ เพื่อเริ่มแชร์โน้ตและคุยกับเพื่อนๆ ครับ</p>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">ชื่อของคุณ / ชื่อเล่น</label>
+                    <input type="text" id="loginName" class="w-full p-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 text-sm" placeholder="เช่น วายุ, มินดี้">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">อีเมล</label>
+                    <input type="email" id="loginEmail" class="w-full p-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 text-sm" placeholder="name@example.com">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">เบอร์โทรศัพท์ (ตัวเลข 10 หลัก)</label>
+                    <input type="tel" id="loginPhone" maxlength="10" class="w-full p-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 text-sm" placeholder="เช่น 0812345678">
+                    <p id="phoneError" class="text-xs text-red-500 mt-1 hidden">⚠️ กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้องเป็นตัวเลข 10 หลัก</p>
+                </div>
+                <button onclick="login()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl text-sm font-medium transition shadow-sm mt-2">
+                    เข้าสู่ระบบเลย 🚀
+                </button>
+            </div>
+        </div>
+    </div>
+
     <main class="max-w-4xl mx-auto px-4 py-6 mb-20">
         <div class="mb-6">
-            <h1 class="text-2xl font-bold text-gray-900">สวัสดีตอนสายครับ 👋</h1>
-            <p class="text-gray-500 text-sm">วันนี้มีเรื่องไหนไม่เข้าใจ หรือมีสรุปดีๆ มาแชร์เพื่อนไหม?</p>
+            <h1 class="text-2xl font-bold text-gray-900">สวัสดีครับ 👋 <span id="greetingName" class="text-indigo-600">เพื่อนๆ</span></h1>
+            <p class="text-gray-500 text-sm">วันนี้มีเรื่องไหนไม่เข้าใจ หรือมีสรุปดีๆ มาแชร์เพื่อนไหม? <span class="text-xs text-amber-600 font-medium block mt-1">⏳ ทุกโพสต์จะหายไปอัตโนมัติภายใน 24 ชั่วโมง</span></p>
         </div>
 
         <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6">
             <h2 class="font-semibold text-gray-700 mb-3"><i class="fa-solid fa-pen-to-square text-indigo-500 mr-2"></i>โพสต์แชร์โน้ต หรือ ถามการบ้าน</h2>
             <textarea id="postContent" rows="3" class="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 text-sm" placeholder="เขียนคำถาม หรืออธิบายโน้ตสรุปที่ต้องการแชร์..."></textarea>
             
+            <div id="imagePreviewContainer" class="mt-2 hidden relative inline-block">
+                <img id="imagePreview" src="" class="max-h-40 rounded-lg border border-gray-200 shadow-sm">
+                <button onclick="clearSelectedImage()" class="absolute -top-2 -right-2 bg-red-500 text-white w-6 h-6 rounded-full text-xs flex items-center justify-center shadow-md hover:bg-red-600">✕</button>
+            </div>
+
             <div class="flex justify-between items-center mt-3">
-                <div class="flex space-x-2">
+                <div class="flex space-x-3 items-center">
                     <select id="postTag" class="text-xs bg-gray-100 border-none rounded-lg p-2 text-gray-600 focus:outline-none">
                         <option value="#คณิตศาสตร์">#คณิตศาสตร์</option>
                         <option value="#ภาษาอังกฤษ">#ภาษาอังกฤษ</option>
                         <option value="#วิทยาศาสตร์">#วิทยาศาสตร์</option>
                     </select>
+                    
+                    <label class="cursor-pointer text-gray-400 hover:text-indigo-500 transition duration-150">
+                        <i class="fa-regular fa-image text-xl"></i>
+                        <input type="file" id="postImageInput" accept="image/*" class="hidden" onchange="previewImage(this)">
+                    </label>
                 </div>
                 <button onclick="addPost()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-xl text-sm font-medium transition duration-200 shadow-sm">
                     โพสต์เลย (+10 XP)
@@ -65,15 +108,86 @@
     <script>
         const SUPABASE_URL = "https://djxvkqxocdowocadzrte.supabase.co"; 
         const SUPABASE_KEY = "sb_publishable_wZW2fNiTJp5mPcBHChRdXQ_4Hf5EIlv"; 
-
-        // ✅ แก้ไขการเชื่อมต่อให้ถูกต้องตามเวอร์ชัน CDN
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // ฟังก์ชันดึงข้อมูลมาแสดงผล
+        function checkLoginStatus() {
+            const user = JSON.parse(localStorage.getItem('peerUser'));
+            if (user) {
+                document.getElementById('loginModal').classList.add('hidden');
+                document.getElementById('userInfoDisplay').classList.remove('hidden');
+                document.getElementById('logoutBtn').classList.remove('hidden');
+                document.getElementById('currentUserName').innerText = user.name;
+                document.getElementById('greetingName').innerText = user.name + " 🎉";
+            } else {
+                document.getElementById('loginModal').classList.remove('hidden');
+                document.getElementById('userInfoDisplay').classList.add('hidden');
+                document.getElementById('logoutBtn').classList.add('hidden');
+            }
+        }
+
+        function login() {
+            const name = document.getElementById('loginName').value.trim();
+            const email = document.getElementById('loginEmail').value.trim();
+            const phone = document.getElementById('loginPhone').value.trim();
+            const phoneError = document.getElementById('phoneError');
+
+            if (!name || !email || !phone) {
+                alert("กรุณากรอกข้อมูลให้ครบทุกช่องก่อนเข้าใช้งานนะครับ!");
+                return;
+            }
+
+            const phonePattern = /^[0-9]{10}$/;
+            if (!phonePattern.test(phone)) {
+                phoneError.classList.remove('hidden');
+                alert("รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง! ต้องเป็นตัวเลข 10 หลัก");
+                return;
+            } else {
+                phoneError.classList.add('hidden');
+            }
+
+            const userData = { name, email, phone };
+            localStorage.setItem('peerUser', JSON.stringify(userData));
+            
+            alert(`ยินดีต้อนรับคุณ ${name} เข้าสู่ระบบสำเร็จ!`);
+            checkLoginStatus();
+            fetchPosts(); // โหลดโพสต์ใหม่เพื่อให้เช็กสิทธิ์ลบโพสต์ของตัวเอง
+        }
+
+        function logout() {
+            if(confirm("คุณต้องการออกจากระบบใช่หรือไม่?")) {
+                localStorage.removeItem('peerUser');
+                location.reload();
+            }
+        }
+
+        // --- ระบบแสดงตัวอย่างรูปภาพก่อนโพสต์ ---
+        function previewImage(input) {
+            const file = input.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('imagePreview').src = e.target.result;
+                    document.getElementById('imagePreviewContainer').classList.remove('hidden');
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function clearSelectedImage() {
+            document.getElementById('postImageInput').value = "";
+            document.getElementById('imagePreview').src = "";
+            document.getElementById('imagePreviewContainer').classList.add('hidden');
+        }
+
+        // --- ฟังก์ชันดึงข้อมูลโพสต์ (เพิ่มปุ่มลบโพสต์ + แสดงรูปภาพ) ---
         async function fetchPosts() {
+            const currentUser = JSON.parse(localStorage.getItem('peerUser'));
+            const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
             const { data: posts, error } = await supabaseClient
                 .from('posts')
                 .select('*')
+                .gt('created_at', twentyFourHoursAgo) 
                 .order('created_at', { ascending: false });
 
             if (error) {
@@ -83,72 +197,146 @@
             }
 
             const feedContainer = document.getElementById('feedContainer');
-            
-            // ถ้าตารางว่างเปล่า ให้แสดงข้อความแจ้งเตือนแทนค้างหน้าจอโหลด
             if (!posts || posts.length === 0) {
-                feedContainer.innerHTML = '<p class="text-center text-gray-400 text-sm py-8">ยังไม่มีใครโพสต์เลย มารวมพลังเป็นคนแรกกัน!</p>';
+                feedContainer.innerHTML = '<p class="text-center text-gray-400 text-sm py-8">ไม่มีโพสต์ในช่วง 24 ชั่วโมงที่ผ่านมา มารวมพลังแชร์เป็นคนแรกกัน!</p>';
                 return;
             }
 
             feedContainer.innerHTML = ''; 
 
             posts.forEach(post => {
+                // 🕵️ เช็กว่า โพสต์นี้เป็นของคนที่เปิดหน้านี้ดูอยู่รึเปล่า?
+                const isMyPost = currentUser && currentUser.name === post.username;
+                
+                // สร้างปุ่มลบ (จะแสดงเฉพาะถ้าเป็นโพสต์ของเราเอง)
+                const deleteButtonHtml = isMyPost 
+                    ? `<button onclick="deletePost(${post.id})" class="text-red-400 hover:text-red-600 p-1 rounded-lg transition duration-150" title="ลบโพสต์ของคุณ"><i class="fa-regular fa-trash-can"></i></button>`
+                    : '';
+
+                // สร้างแท็กรูปภาพ (จะแสดงเฉพาะถ้าโพสต์นั้นมีการแนบลบลิงก์รูปภาพมา)
+                const imageHtml = post.image_url 
+                    ? `<div class="mt-3 overflow-hidden rounded-xl border border-gray-100 max-h-80 bg-gray-50 flex justify-center items-center"><img src="${post.image_url}" class="max-h-80 object-contain w-full"></div>`
+                    : '';
+
                 const postCard = document.createElement('div');
                 postCard.className = "bg-white p-4 rounded-2xl shadow-sm border border-gray-100";
                 postCard.innerHTML = `
                     <div class="flex justify-between items-start mb-3">
                         <div class="flex items-center space-x-3">
                             <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold">
-                                ${post.username ? post.username[0].toUpperCase() : 'W'}
+                                ${post.username ? post.username[0].toUpperCase() : 'U'}
                             </div>
                             <div>
-                                <h4 class="font-medium text-sm text-gray-900">${post.username || 'วายุ'}</h4>
+                                <h4 class="font-medium text-sm text-gray-900">${post.username || 'ผู้ใช้ทั่วไป'}</h4>
                                 <p class="text-xs text-gray-400">${post.created_at ? new Date(post.created_at).toLocaleTimeString('th-TH') : 'เมื่อสักครู่'}</p>
                             </div>
                         </div>
-                        <span class="bg-amber-50 text-amber-600 text-xs px-2.5 py-1 rounded-full font-medium">${post.post_type || 'ถามตอบ Q&A'}</span>
+                        <div class="flex items-center space-x-2">
+                            <span class="bg-amber-50 text-amber-600 text-xs px-2.5 py-1 rounded-full font-medium">${post.post_type || 'ถามตอบ Q&A'}</span>
+                            ${deleteButtonHtml}
+                        </div>
                     </div>
-                    <p class="text-gray-700 text-sm mb-3">${post.content}</p>
-                    <div class="flex items-center space-x-4 text-xs text-gray-500 border-t border-gray-50 pt-3">
-                        <button onclick="alert('ระบบคอมเมนต์กำลังตามมาในเวอร์ชันถัดไป!')" class="flex items-center space-x-1 hover:text-indigo-500"><i class="fa-regular fa-comment"></i> <span>ช่วยตอบ</span></button>
-                        <span class="text-indigo-500 font-medium ml-auto">${post.tag || '#ทั่วไป'}</span>
+                    <p class="text-gray-700 text-sm mb-1">${post.content}</p>
+                    ${imageHtml}
+                    <div class="flex items-center space-x-4 text-xs text-gray-500 border-t border-gray-50 pt-3 mt-3">
+                        <button onclick="alert('ระบบตอบคอมเมนต์กำลังพัฒนาครับ!')" class="flex items-center space-x-1 hover:text-indigo-500"><i class="fa-regular fa-comment"></i> <span>ช่วยตอบ</span></button>
+                        <span class="text-indigo-500 font-medium ml-auto">${post.tag || ''}</span>
                     </div>
                 `;
                 feedContainer.appendChild(postCard);
             });
         }
 
-        // ฟังก์ชันส่งโพสต์ใหม่เข้าตาราง
+        // --- ฟังก์ชันอัปโหลดโพสต์ (เพิ่มคำสั่งส่งรูปขึ้น Storage) ---
         async function addPost() {
-            const content = document.getElementById('postContent').value;
-            const tag = document.getElementById('postTag').value;
-            
-            if (content.trim() === "") {
-                alert("กรุณาพิมพ์ข้อความก่อนโพสต์นะครับ!");
+            const user = JSON.parse(localStorage.getItem('peerUser'));
+            if (!user) {
+                alert("กรุณาลงทะเบียนเข้าสู่ระบบก่อนโพสต์นะครับ");
+                checkLoginStatus();
                 return;
             }
 
+            const content = document.getElementById('postContent').value;
+            const tag = document.getElementById('postTag').value;
+            const imageInput = document.getElementById('postImageInput');
+            
+            if (content.trim() === "" && !imageInput.files[0]) {
+                alert("กรุณาพิมพ์ข้อความหรือแนบรูปภาพก่อนโพสต์นะครับ!");
+                return;
+            }
+
+            let uploadedImageUrl = null;
+
+            // 📸 ถ้าผู้ใช้เลือกรูปภาพมา ให้ทำการอัปโหลดขึ้น Storage ก่อน
+            if (imageInput.files[0]) {
+                const file = imageInput.files[0];
+                const fileExt = file.name.split('.').pop();
+                // ตั้งชื่อไฟล์สุ่ม เพื่อไม่ให้ชื่อซ้ำกันในระบบ
+                const fileName = `${Date.now()}-${Math.floor(Math.random() * 1000)}.${fileExt}`;
+                
+                // คำสั่งส่งขึ้นถังข้อมูล post-images ของ Supabase
+                const { data: storageData, error: storageError } = await supabaseClient
+                    .storage
+                    .from('post-images')
+                    .upload(fileName, file);
+
+                if (storageError) {
+                    alert("อัปโหลดรูปภาพล้มเหลว: " + storageError.message);
+                    return;
+                }
+
+                // ดึงลิงก์สาธารณะ (Public URL) ของรูปภาพที่อัปโหลดสำเร็จออกมารวมกับฐานข้อมูล
+                const { data: urlData } = supabaseClient
+                    .storage
+                    .from('post-images')
+                    .getPublicUrl(fileName);
+                
+                uploadedImageUrl = urlData.publicUrl;
+            }
+
+            // บันทึกโพสต์เข้าตาราง
             const { error } = await supabaseClient
                 .from('posts')
                 .insert([
                     { 
-                        username: 'Wayu', 
+                        username: user.name, 
                         content: content, 
-                        tag: tag
+                        tag: tag,
+                        image_url: uploadedImageUrl // แนบลิงก์รูปไปด้วย (ถ้าไม่มีจะเป็นค่าว่างอัตโนมัติ)
                     }
                 ]);
 
             if (error) {
-                alert("เกิดข้อผิดพลาดจากฐานข้อมูล: " + error.message);
-                console.error(error);
+                alert("เกิดข้อผิดพลาด: " + error.message);
             } else {
                 document.getElementById('postContent').value = "";
-                alert("บันทึกเข้าฐานข้อมูลเรียบร้อย! พลังน้ำใจ +10 XP");
+                clearSelectedImage();
+                alert("บันทึกเข้าฐานข้อมูลเรียบร้อย!");
                 fetchPosts(); 
             }
         }
 
-        window.onload = fetchPosts;
+        // --- 🗑️ ฟังก์ชันลบโพสต์ด้วยตัวเอง ---
+        async function deletePost(postId) {
+            if (confirm("คุณแน่ใจใช่ไหมว่าต้องการลบโพสต์นี้ออก?")) {
+                const { error } = await supabaseClient
+                    .from('posts')
+                    .delete()
+                    .eq('id', postId); // ลบแถวข้อมูลที่ id ตรงกับโพสต์นี้
+
+                if (error) {
+                    alert("ลบโพสต์ไม่สำเร็จ: " + error.message);
+                } else {
+                    alert("ลบโพสต์สำเร็จเรียบร้อยแล้ว!");
+                    fetchPosts(); // รีโหลดฟีดใหม่ทันที
+                }
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            checkLoginStatus();
+            fetchPosts();
+        });
     </script>
 </body>
 </html>
