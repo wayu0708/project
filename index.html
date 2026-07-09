@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>จับมือเรียน - Peer Learning Platform</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- ใช้ Tailwind Play CDN v3 เพื่อให้รันในเครื่อง D:/ แบบออฟไลน์/ออนไลน์ ได้สมบูรณ์ 100% -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Kanit:wght=300;400;500;600&display=swap');
@@ -19,10 +20,13 @@
         <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center space-x-2">
                 <i class="fa-solid fa-user-group text-xl"></i>
-                <span class="text-xl font-bold tracking-wide">จับมือเรียน</span>
+                <span class="text-xl font-bold tracking-wide cursor-pointer" onclick="location.reload()">จับมือเรียน</span>
             </div>
             <div class="flex items-center space-x-4">
-                <div id="userInfoDisplay" class="hidden flex items-center bg-white/20 px-3 py-1.5 rounded-full backdrop-blur-sm">
+                <div id="userInfoDisplay" onclick="openMyProfile()" class="hidden flex items-center bg-white/20 px-3 py-1.5 rounded-full backdrop-blur-sm cursor-pointer hover:bg-white/30 transition space-x-2">
+                    <div id="navUserAvatar" class="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs overflow-hidden">
+                        U
+                    </div>
                     <span id="currentUserName" class="text-sm font-medium">ผู้ใช้งาน</span>
                 </div>
                 <button id="logoutBtn" onclick="logout()" class="hidden text-xs bg-red-500 hover:bg-red-600 px-2.5 py-1.5 rounded-lg transition">ออกจากระบบ</button>
@@ -31,40 +35,105 @@
     </nav>
 
     <!-- ป๊อปอัปหน้าต่างล็อกอิน -->
-<!-- ป๊อปอัปหน้าต่างล็อกอิน -->
-<div id="loginModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 hidden">
-    <div class="bg-white w-full max-w-md p-6 rounded-2xl shadow-xl border border-gray-100">
-        <div class="text-center mb-6">
-            <div class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-3 text-xl">
-                <i class="fa-solid fa-lock"></i>
+    <div id="loginModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 hidden">
+        <div class="bg-white w-full max-w-md p-6 rounded-2xl shadow-xl border border-gray-100">
+            <div class="text-center mb-6">
+                <div class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-3 text-xl">
+                    <i class="fa-solid fa-lock"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-900">ลงทะเบียนเข้าใช้งาน</h3>
+                <p class="text-gray-500 text-xs mt-1">กรอกข้อมูลเพื่อเริ่มแชร์โน้ตและถามตอบกับเพื่อนๆ</p>
             </div>
-            <h3 class="text-xl font-bold text-gray-900">ลงทะเบียนเข้าใช้งาน</h3>
-            <p class="text-gray-500 text-xs mt-1">กรอกข้อมูลเพื่อเริ่มแชร์โน้ตและถามตอบกับเพื่อนๆ</p>
-        </div>
-        <div class="space-y-4">
-
-            <!-- 🛑 ก๊อปปี้โค้ดใหม่ทั้งหมดมาวางทับแทนที่ตั้งแต่บรรทัดนี้ลงไป... -->
-            <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1">ชื่อของคุณ / ชื่อเล่น</label>
-                <input type="text" id="loginName" class="w-full p-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 text-sm" placeholder="เช่น ชื่อ/สกุล">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">ชื่อของคุณ / ชื่อเล่น</label>
+                    <input type="text" id="loginName" class="w-full p-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 text-sm" placeholder="เช่น ชื่อ/สกุล">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">อีเมล</label>
+                    <input type="email" id="loginEmail" class="w-full p-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 text-sm" placeholder="name@example.com">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">เบอร์โทรศัพท์ (ตัวเลข 10 หลัก)</label>
+                    <input type="tel" id="loginPhone" maxlength="10" class="w-full p-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 text-sm" placeholder="เช่น 081234xxxx">
+                    <p id="phoneError" class="text-xs text-red-500 mt-1 hidden">กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้องเป็นตัวเลข 10 หลัก</p>
+                </div>
+                <button onclick="login()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl text-sm font-medium transition shadow-sm mt-2">
+                    เข้าสู่ระบบ
+                </button>
             </div>
-            <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1">อีเมล</label>
-                <input type="email" id="loginEmail" class="w-full p-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 text-sm" placeholder="name@example.com">
-            </div>
-            <div>
-                <label class="block text-xs font-medium text-gray-600 mb-1">เบอร์โทรศัพท์ (ตัวเลข 10 หลัก)</label>
-                <input type="tel" id="loginPhone" maxlength="10" class="w-full p-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 text-sm" placeholder="เช่น 081234xxxx">
-                <p id="phoneError" class="text-xs text-red-500 mt-1 hidden">กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้องเป็นตัวเลข 10 หลัก</p>
-            </div>
-            <!-- 🛑 ...จนถึงตรงนี้ครับ -->
-
-            <button onclick="login()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl text-sm font-medium transition shadow-sm mt-2">
-                เข้าสู่ระบบ
-            </button>
         </div>
     </div>
-</div>
+
+    <!-- ป๊อปอัปแสดงโปรไฟล์ (Profile Modal) -->
+    <div id="profileModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 hidden">
+        <div class="bg-white w-full max-w-md p-6 rounded-2xl shadow-xl border border-gray-100 relative">
+            <button onclick="closeProfileModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg">✕</button>
+            
+            <div class="text-center mb-6">
+                <!-- วงกลมรูปโปรไฟล์ใหญ่ -->
+                <div id="profileAvatar" class="w-20 h-20 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-3xl mx-auto mb-3 overflow-hidden border-2 border-indigo-200">
+                    U
+                </div>
+                <h3 id="profileName" class="text-xl font-bold text-gray-900">ชื่อผู้ใช้งาน</h3>
+                <p id="profileExpertise" class="text-sm text-indigo-600 font-medium mt-1">ยังไม่มีข้อมูลวิชาที่ถนัด</p>
+            </div>
+
+            <!-- ส่วนแสดงประวัติและสถิติ (โหมดปกติ) -->
+            <div id="profileViewMode" class="space-y-4">
+                <div class="bg-gray-50 p-3.5 rounded-xl border border-gray-100">
+                    <h4 class="text-xs font-semibold text-gray-500 mb-1">แนะนำตัว</h4>
+                    <p id="profileBio" class="text-sm text-gray-700">ไม่มีคำแนะนำตัว</p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 text-center">
+                    <div class="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                        <span id="statPostCount" class="block text-xl font-bold text-indigo-600">0</span>
+                        <span class="text-[10px] text-gray-500 uppercase font-medium">สรุปโน้ต / โพสต์</span>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                        <span id="statCommentCount" class="block text-xl font-bold text-indigo-600">0</span>
+                        <span class="text-[10px] text-gray-500 uppercase font-medium">การช่วยคอมเมนต์</span>
+                    </div>
+                </div>
+
+                <button id="editProfileBtn" onclick="toggleProfileEdit(true)" class="hidden w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-2.5 rounded-xl text-xs font-semibold transition">
+                    แก้ไขโปรไฟล์ของฉัน
+                </button>
+            </div>
+
+            <!-- ส่วนแก้ไขโปรไฟล์ (โหมดแก้ไข) -->
+            <div id="profileEditMode" class="space-y-4 hidden">
+                <!-- ส่วนอัปโหลดรูปภาพโปรไฟล์ -->
+                <div class="bg-gray-50 p-3 rounded-xl border border-gray-100 flex flex-col items-center">
+                    <label class="block text-xs font-semibold text-gray-500 mb-2">เปลี่ยนรูปโปรไฟล์ของคุณ</label>
+                    <div class="relative group cursor-pointer">
+                        <div id="editAvatarPreview" class="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xl overflow-hidden border-2 border-indigo-200">
+                            U
+                        </div>
+                        <label for="profileAvatarInput" class="absolute inset-0 bg-black/40 text-white rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition cursor-pointer">
+                            <i class="fa-solid fa-camera"></i>
+                        </label>
+                    </div>
+                    <input type="file" id="profileAvatarInput" accept="image/*" class="hidden" onchange="previewProfileAvatar(this)">
+                    <p class="text-[10px] text-gray-400 mt-1.5">คลิกที่รูปด้านบนเพื่อเลือกไฟล์รูปภาพใหม่</p>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">วิชาที่ถนัด (เช่น คณิต, อังกฤษ)</label>
+                    <input type="text" id="editExpertiseInput" class="w-full p-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 text-sm" placeholder="ระบุวิชาที่คุณถนัด">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">เขียนแนะนำตัวเองสั้นๆ</label>
+                    <textarea id="editBioInput" rows="3" class="w-full p-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 text-sm" placeholder="แนะนำตัวให้เพื่อนๆ รู้จักกันหน่อย"></textarea>
+                </div>
+                <div class="flex space-x-2 pt-2">
+                    <button onclick="toggleProfileEdit(false)" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2.5 rounded-xl text-xs font-semibold transition">ยกเลิก</button>
+                    <button id="saveProfileBtn" onclick="saveProfile()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl text-xs font-semibold transition shadow-sm">บันทึกข้อมูล</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- เนื้อหาหลักของเว็บ -->
     <main class="max-w-4xl mx-auto px-4 py-6 mb-20">
@@ -120,6 +189,26 @@
         const SUPABASE_KEY = "sb_publishable_wZW2fNiTJp5mPcBHChRdXQ_4Hf5EIlv"; 
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+        // ตัวแปรเก็บแคชของรูปโปรไฟล์ผู้ใช้งานเพื่อหลีกเลี่ยงการอัปเดตช้า
+        let loadedProfiles = {};
+
+        async function updateNavAndGreetingAvatar(username) {
+            if (!username) return;
+            const { data: profile } = await supabaseClient
+                .from('profiles')
+                .select('avatar_url')
+                .eq('username', username)
+                .single();
+
+            const navAvatar = document.getElementById('navUserAvatar');
+            if (profile && profile.avatar_url) {
+                navAvatar.innerHTML = `<img src="${profile.avatar_url}" class="w-full h-full object-cover">`;
+                loadedProfiles[username] = profile.avatar_url;
+            } else {
+                navAvatar.innerHTML = username[0].toUpperCase();
+            }
+        }
+
         function checkLoginStatus() {
             const user = JSON.parse(localStorage.getItem('peerUser'));
             if (user) {
@@ -128,6 +217,7 @@
                 document.getElementById('logoutBtn').classList.remove('hidden');
                 document.getElementById('currentUserName').innerText = user.name;
                 document.getElementById('greetingName').innerText = user.name;
+                updateNavAndGreetingAvatar(user.name);
             } else {
                 document.getElementById('loginModal').classList.remove('hidden');
                 document.getElementById('userInfoDisplay').classList.add('hidden');
@@ -169,6 +259,8 @@
             }
         }
 
+        // --- 📸 ระบบพรีวิวรูปภาพต่างๆ ---
+
         function previewImage(input) {
             const file = input.files[0];
             if (file) {
@@ -187,6 +279,19 @@
             document.getElementById('imagePreviewContainer').classList.add('hidden');
         }
 
+        // ระบบพรีวิวภาพโปรไฟล์ขณะแก้ไข
+        function previewProfileAvatar(input) {
+            const file = input.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const previewBox = document.getElementById('editAvatarPreview');
+                    previewBox.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover">`;
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
         function handleTagChange(selectElement) {
             const customInput = document.getElementById('customTagInput');
             if (selectElement.value === 'custom') {
@@ -198,9 +303,188 @@
             }
         }
 
+        // --- STREAMING_CHUNK: Defining Profile Functions... ---
+        // --- 👥 ฟังก์ชันระบบโปรไฟล์ (Profile Functions) ---
+
+        async function openProfile(username) {
+            const currentUser = JSON.parse(localStorage.getItem('peerUser'));
+            
+            // 1. ดึงข้อมูลโปรไฟล์จาก Supabase
+            const { data: profile, error } = await supabaseClient
+                .from('profiles')
+                .select('*')
+                .eq('username', username)
+                .single();
+
+            // 2. นับจำนวนโพสต์จริงของผู้ใช้
+            const { count: postsCount } = await supabaseClient
+                .from('posts')
+                .select('id', { count: 'exact', head: true })
+                .eq('username', username);
+
+            // 3. นับจำนวนคอมเมนต์จริงของผู้ใช้
+            const { count: commentsCount } = await supabaseClient
+                .from('comments')
+                .select('id', { count: 'exact', head: true })
+                .eq('username', username);
+
+            // อัปเดตข้อมูลบนหน้าต่าง UI โปรไฟล์
+            document.getElementById('profileName').innerText = username;
+            
+            // การแสดงผลรูปภาพโปรไฟล์ (ถ้ามีลิงก์ภาพให้ดึงมาแสดงแทนตัวอักษร)
+            const profileAvatarDiv = document.getElementById('profileAvatar');
+            const editAvatarPreviewDiv = document.getElementById('editAvatarPreview');
+            const defaultAvatarChar = username ? username[0].toUpperCase() : 'U';
+
+            if (profile && profile.avatar_url) {
+                profileAvatarDiv.innerHTML = `<img src="${profile.avatar_url}" class="w-full h-full object-cover">`;
+                editAvatarPreviewDiv.innerHTML = `<img src="${profile.avatar_url}" class="w-full h-full object-cover">`;
+                // เก็บค่าปัจจุบันไว้ในตัวแปรบนหน้าต่างเพื่อความเร็ว
+                profileAvatarDiv.dataset.currentUrl = profile.avatar_url;
+            } else {
+                profileAvatarDiv.innerHTML = defaultAvatarChar;
+                editAvatarPreviewDiv.innerHTML = defaultAvatarChar;
+                profileAvatarDiv.dataset.currentUrl = "";
+            }
+
+            document.getElementById('statPostCount').innerText = postsCount || 0;
+            document.getElementById('statCommentCount').innerText = commentsCount || 0;
+
+            if (profile) {
+                document.getElementById('profileExpertise').innerText = profile.expertise ? "ถนัดวิชา: " + profile.expertise : "ยังไม่มีข้อมูลวิชาที่ถนัด";
+                document.getElementById('profileBio').innerText = profile.bio || "ไม่มีคำแนะนำตัว";
+                document.getElementById('editExpertiseInput').value = profile.expertise || "";
+                document.getElementById('editBioInput').value = profile.bio || "";
+            } else {
+                document.getElementById('profileExpertise').innerText = "ยังไม่มีข้อมูลวิชาที่ถนัด";
+                document.getElementById('profileBio').innerText = "ไม่มีคำแนะนำตัว";
+                document.getElementById('editExpertiseInput').value = "";
+                document.getElementById('editBioInput').value = "";
+            }
+
+            // ตรวจสอบสิทธิ์ว่าใช่โปรไฟล์ของเราเองหรือไม่ หากใช่จะแสดงปุ่มแก้ไขให้
+            const editProfileBtn = document.getElementById('editProfileBtn');
+            if (currentUser && currentUser.name === username) {
+                editProfileBtn.classList.remove('hidden');
+            } else {
+                editProfileBtn.classList.add('hidden');
+            }
+
+            toggleProfileEdit(false);
+            document.getElementById('profileModal').classList.remove('hidden');
+        }
+
+        function openMyProfile() {
+            const currentUser = JSON.parse(localStorage.getItem('peerUser'));
+            if (currentUser) {
+                openProfile(currentUser.name);
+            }
+        }
+
+        function closeProfileModal() {
+            document.getElementById('profileModal').classList.add('hidden');
+        }
+
+        function toggleProfileEdit(isEdit) {
+            if (isEdit) {
+                document.getElementById('profileViewMode').classList.add('hidden');
+                document.getElementById('profileEditMode').classList.remove('hidden');
+            } else {
+                document.getElementById('profileViewMode').classList.remove('hidden');
+                document.getElementById('profileEditMode').classList.add('hidden');
+                // รีเซ็ตค่า Input เลือกรูปภาพ
+                document.getElementById('profileAvatarInput').value = "";
+            }
+        }
+
+        async function saveProfile() {
+            const currentUser = JSON.parse(localStorage.getItem('peerUser'));
+            if (!currentUser) return;
+
+            const saveBtn = document.getElementById('saveProfileBtn');
+            saveBtn.disabled = true;
+            saveBtn.innerText = "กำลังบันทึก...";
+
+            const expertise = document.getElementById('editExpertiseInput').value.trim();
+            const bio = document.getElementById('editBioInput').value.trim();
+            const avatarInput = document.getElementById('profileAvatarInput');
+
+            let uploadedAvatarUrl = document.getElementById('profileAvatar').dataset.currentUrl || null;
+
+            // ตรวจสอบการเลือกรูปโปรไฟล์ใหม่เพื่ออัปโหลด
+            if (avatarInput.files && avatarInput.files[0]) {
+                const file = avatarInput.files[0];
+                const fileExt = file.name.split('.').pop();
+                
+                // ตั้งชื่อไฟล์โดยใช้ตัวเลขสุ่มและเวลา เพื่อหลีกเลี่ยงภาษาไทยที่ระบบจัดเก็บไฟล์ไม่รองรับ
+                const fileName = `avatar-${Date.now()}-${Math.floor(Math.random() * 10000)}.${fileExt}`;
+                
+                const { data: storageData, error: storageError } = await supabaseClient
+                    .storage
+                    .from('post-images') // แชร์ Bucket โพสต์หลักเพื่อความเรียบง่ายและไม่ต้องตั้งค่าสิทธิ์เพิ่มใหม่
+                    .upload(fileName, file);
+
+                if (storageError) {
+                    alert("อัปโหลดรูปภาพโปรไฟล์ล้มเหลว: " + storageError.message);
+                    saveBtn.disabled = false;
+                    saveBtn.innerText = "บันทึกข้อมูล";
+                    return;
+                }
+
+                const { data: urlData } = supabaseClient
+                    .storage
+                    .from('post-images')
+                    .getPublicUrl(fileName);
+                
+                uploadedAvatarUrl = urlData.publicUrl;
+            }
+
+            // บันทึกข้อมูลและพาร์ทรูปภาพลงฐานข้อมูล profiles
+            const { error } = await supabaseClient
+                .from('profiles')
+                .upsert({
+                    username: currentUser.name,
+                    expertise: expertise,
+                    bio: bio,
+                    avatar_url: uploadedAvatarUrl,
+                    updated_at: new Date().toISOString()
+                });
+
+            if (error) {
+                alert("บันทึกโปรไฟล์ไม่สำเร็จ: " + error.message);
+            } else {
+                alert("บันทึกการเปลี่ยนแปลงโปรไฟล์เรียบร้อยแล้ว!");
+                // อัปเดตรูปภาพที่เมนูด้านบนทันที
+                if (uploadedAvatarUrl) {
+                    loadedProfiles[currentUser.name] = uploadedAvatarUrl;
+                }
+                updateNavAndGreetingAvatar(currentUser.name);
+                openProfile(currentUser.name); // โหลดโปรไฟล์ขึ้นมาแสดงผลใหม่
+                fetchPosts(); // รีเฟรชฟีดหลักทั้งหมดเพื่ออัปเดตรูปหน้าคอมเมนต์และโพสต์
+            }
+
+            saveBtn.disabled = false;
+            saveBtn.innerText = "บันทึกข้อมูล";
+        }
+
+        // --- STREAMING_CHUNK: Fetching posts and comments... ---
+        // --- 🔄 ฟังก์ชันสืบค้นข้อมูลและจัดเรียงฟีดโพสต์ ---
+
         async function fetchPosts() {
             const currentUser = JSON.parse(localStorage.getItem('peerUser'));
             const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+            // ดึงข้อมูลโปรไฟล์ผู้ใช้ทั้งหมดมาเตรียมทำแผนที่ดึงข้อมูลโปรไฟล์ (Map) เพื่อไม่ให้แสดงผลรูปภาพโปรไฟล์ล่าช้า
+            const { data: allProfiles } = await supabaseClient
+                .from('profiles')
+                .select('username, avatar_url');
+
+            const profileMap = {};
+            if (allProfiles) {
+                allProfiles.forEach(p => {
+                    profileMap[p.username] = p.avatar_url;
+                });
+            }
 
             const { data: posts, error: postError } = await supabaseClient
                 .from('posts')
@@ -237,26 +521,42 @@
                     ? `<div class="mt-3 overflow-hidden rounded-xl border border-gray-100 max-h-80 bg-gray-50 flex justify-center items-center"><img src="${post.image_url}" class="max-h-80 object-contain w-full"></div>`
                     : '';
 
+                // การสืบค้นรูปโปรไฟล์ของผู้โพสต์
+                const postUserAvatarUrl = profileMap[post.username];
+                const postUserAvatarHtml = postUserAvatarUrl
+                    ? `<img src="${postUserAvatarUrl}" class="w-full h-full object-cover">`
+                    : (post.username ? post.username[0].toUpperCase() : 'U');
+
                 const postComments = comments ? comments.filter(c => c.post_id === post.id) : [];
                 let commentsListHtml = '';
                 
                 postComments.forEach(comment => {
-                    // ตรวจสอบว่าเป็นคอมเมนต์ของตัวเองหรือไม่เพื่อแสดงปุ่มลบ
                     const isMyComment = currentUser && currentUser.name === comment.username;
                     const deleteCommentBtnHtml = isMyComment 
                         ? `<button onclick="deleteComment(${comment.id})" class="text-red-400 hover:text-red-600 p-1 transition duration-150 ml-2" title="ลบความคิดเห็น"><i class="fa-regular fa-trash-can text-[10px]"></i></button>`
                         : '';
 
+                    // การสืบค้นรูปโปรไฟล์ของคนคอมเมนต์
+                    const commentUserAvatarUrl = profileMap[comment.username];
+                    const commentUserAvatarHtml = commentUserAvatarUrl
+                        ? `<img src="${commentUserAvatarUrl}" class="w-full h-full object-cover">`
+                        : (comment.username ? comment.username[0].toUpperCase() : 'U');
+
                     commentsListHtml += `
                         <div class="bg-gray-50 p-2.5 rounded-xl border border-gray-100 text-xs">
-                            <div class="flex justify-between items-center mb-1">
-                                <span class="font-semibold text-indigo-600">${comment.username}</span>
+                            <div class="flex justify-between items-start mb-1">
+                                <div class="flex items-center space-x-2">
+                                    <div onclick="openProfile('${comment.username}')" class="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-[9px] overflow-hidden cursor-pointer">
+                                        ${commentUserAvatarHtml}
+                                    </div>
+                                    <span onclick="openProfile('${comment.username}')" class="font-semibold text-indigo-600 cursor-pointer hover:underline">${comment.username}</span>
+                                </div>
                                 <div class="flex items-center space-x-1">
                                     <span class="text-[10px] text-gray-400">${new Date(comment.created_at).toLocaleTimeString('th-TH')}</span>
                                     ${deleteCommentBtnHtml}
                                 </div>
                             </div>
-                            <p class="text-gray-700">${comment.content}</p>
+                            <p class="text-gray-700 ml-7">${comment.content}</p>
                         </div>
                     `;
                 });
@@ -266,11 +566,11 @@
                 postCard.innerHTML = `
                     <div class="flex justify-between items-start">
                         <div class="flex items-center space-x-3">
-                            <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold">
-                                ${post.username ? post.username[0].toUpperCase() : 'U'}
+                            <div onclick="openProfile('${post.username}')" class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold cursor-pointer hover:scale-105 transition overflow-hidden">
+                                ${postUserAvatarHtml}
                             </div>
                             <div>
-                                <h4 class="font-medium text-sm text-gray-900">${post.username || 'ผู้ใช้ทั่วไป'}</h4>
+                                <h4 onclick="openProfile('${post.username}')" class="font-medium text-sm text-gray-900 cursor-pointer hover:underline">${post.username || 'ผู้ใช้ทั่วไป'}</h4>
                                 <p class="text-xs text-gray-400">${post.created_at ? new Date(post.created_at).toLocaleTimeString('th-TH') : 'เมื่อสักครู่'}</p>
                             </div>
                         </div>
@@ -304,6 +604,7 @@
             });
         }
 
+        // --- STREAMING_CHUNK: Managing database insertions and deletions... ---
         async function addPost() {
             const user = JSON.parse(localStorage.getItem('peerUser'));
             if (!user) {
@@ -419,9 +720,8 @@
                     fetchPosts();
                 }
             }
-        } // <--- นี่คือปีกกาปิดของ deletePostเดิม ให้กด Enter ขึ้นบรรทัดใหม่ตรงนี้
+        }
 
-        // 🛑 วางฟังก์ชันลบคอมเมนต์ต่อท้ายตรงนี้เลยครับ
         async function deleteComment(commentId) {
             if (confirm("คุณแน่ใจใช่ไหมว่าต้องการลบความคิดเห็นนี้")) {
                 const { error } = await supabaseClient
