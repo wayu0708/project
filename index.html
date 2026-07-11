@@ -4,37 +4,222 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>จับมือเรียน - Peer Learning Platform</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- ใช้ Tailwind Play CDN v3 เพื่อให้รันในเครื่อง D:/ แบบออฟไลน์/ออนไลน์ ได้สมบูรณ์ 100% -->
+    <!-- Tailwind CSS v3 (Play CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Noto Sans Thai) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Kanit:wght=300;400;500;600&display=swap');
-        body { font-family: 'Kanit', sans-serif; }
+        body { font-family: 'Noto Sans Thai', sans-serif; background-color: #f8fafc; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        /* สไตล์สำหรับซ่อน Scrollbar ของแถบคู่หูติดตามแต่ยังเลื่อนสไลด์ได้ */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800">
+<body class="min-h-screen flex flex-col pb-12">
 
-    <!-- แถบเมนูด้านบน -->
-    <nav class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md sticky top-0 z-50">
-        <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center space-x-2">
-                <i class="fa-solid fa-user-group text-xl"></i>
-                <span class="text-xl font-bold tracking-wide cursor-pointer" onclick="location.reload()">จับมือเรียน</span>
-            </div>
-            <div class="flex items-center space-x-4">
-                <div id="userInfoDisplay" onclick="openMyProfile()" class="hidden flex items-center bg-white/20 px-3 py-1.5 rounded-full backdrop-blur-sm cursor-pointer hover:bg-white/30 transition space-x-2">
-                    <div id="navUserAvatar" class="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs overflow-hidden">
-                        U
-                    </div>
-                    <span id="currentUserName" class="text-sm font-medium">ผู้ใช้งาน</span>
+    <!-- แถบเมนูด้านบน (Navbar) -->
+    <nav class="bg-white border-b border-gray-100 sticky top-0 z-40 shadow-sm">
+        <div class="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="window.location.reload()">
+                <div class="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center text-xl shadow-md shadow-indigo-100">
+                    <i class="fa-solid fa-graduation-cap"></i>
                 </div>
-                <button id="logoutBtn" onclick="logout()" class="hidden text-xs bg-red-500 hover:bg-red-600 px-2.5 py-1.5 rounded-lg transition">ออกจากระบบ</button>
+                <div>
+                    <span class="text-lg font-bold text-gray-900 block leading-tight">จับมือเรียน</span>
+                    <span class="text-[10px] text-indigo-500 font-medium tracking-wider uppercase">Peer Learning Portal</span>
+                </div>
+            </div>
+
+            <!-- ส่วนข้อมูลผู้ใช้มุมขวา -->
+            <div id="userSection" class="flex items-center space-x-3">
+                <button onclick="openLoginModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition shadow-sm">
+                    เข้าสู่ระบบ
+                </button>
             </div>
         </div>
     </nav>
 
-    <!-- ป๊อปอัปหน้าต่างล็อกอิน -->
+    <!-- พื้นที่เนื้อหาหลัก (Main Content) -->
+    <main class="max-w-2xl mx-auto w-full px-4 pt-6 flex-grow">
+        
+        <!-- แถบคู่หูเรียนที่กำลังติดตาม (Following Buddies Bar) -->
+        <div id="followingBuddiesContainer" class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm mb-5 hidden">
+            <h4 class="text-xs font-semibold text-gray-500 mb-3 tracking-wide flex items-center">
+                <i class="fa-solid fa-user-check text-indigo-500 mr-1.5"></i> คู่หูเรียนที่คุณติดตาม
+            </h4>
+            <div id="buddiesList" class="flex items-center space-x-4 overflow-x-auto no-scrollbar py-1">
+                <!-- รายชื่อคนที่เราติดตามจะถูกใส่เข้ามาแบบ Dynamic ตรงนี้ -->
+            </div>
+        </div>
+
+        <!-- แท็บสลับหน้าฟีดข่าว (เปิดเฉพาะเมื่อล็อกอินแล้ว) -->
+        <div id="feedTabs" class="bg-gray-100 p-1 rounded-xl flex mb-5 shadow-inner hidden">
+            <button id="tabAll" onclick="switchFeed('all')" class="flex-1 py-2 text-xs font-medium rounded-lg text-center transition bg-white text-indigo-600 shadow-sm">
+                <i class="fa-solid fa-earth-americas mr-1.5"></i>ฟีดทั้งหมด (24 ชั่วโมง)
+            </button>
+            <button id="tabFollow" onclick="switchFeed('follow')" class="flex-1 py-2 text-xs font-medium rounded-lg text-center transition text-gray-600 hover:text-gray-900">
+                <i class="fa-solid fa-user-heart mr-1.5"></i>เฉพาะคนที่ติดตาม
+            </button>
+        </div>
+
+        <!-- กล่องสร้างโพสต์ใหม่ -->
+        <div id="createPostBox" class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm mb-6 transition-all hidden">
+            <div class="flex items-start space-x-3">
+                <div id="createPostAvatar" class="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 font-bold flex items-center justify-center text-sm border border-indigo-100 shadow-inner flex-shrink-0">U</div>
+                <div class="flex-grow">
+                    <textarea id="postContent" rows="3" class="w-full text-sm text-gray-700 placeholder-gray-400 focus:outline-none resize-none bg-gray-50/50 p-3 rounded-xl border border-gray-100 focus:border-indigo-500 focus:bg-white transition" placeholder="มีโจทย์ข้อไหนไม่เข้าใจ หรืออยากแชร์สรุปวิชาอะไรลงฟีดไหม..."></textarea>
+                    
+                    <!-- ส่วนอัปโหลดรูปภาพประกอบโพสต์ -->
+                    <div class="mt-3 flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-gray-50">
+                        <label class="flex items-center space-x-2 text-xs text-gray-500 hover:text-indigo-600 cursor-pointer bg-gray-50 hover:bg-indigo-50 px-3 py-2 rounded-lg transition border border-gray-100">
+                            <i class="fa-regular fa-image text-sm"></i>
+                            <span id="uploadStatusText">แนบรูปภาพสรุปโน้ต</span>
+                            <input type="file" id="postImageInput" accept="image/*" class="hidden" onchange="handlePostImageSelect(event)">
+                        </label>
+                        <button onclick="createPost()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-xl text-xs font-medium transition shadow-md shadow-indigo-100 flex items-center space-x-1.5">
+                            <i class="fa-regular fa-paper-plane"></i><span>แชร์ลงฟีด</span>
+                        </button>
+                    </div>
+                    <!-- ส่วนพรีวิวรูปโพสต์ก่อนกดแชร์ -->
+                    <div id="postImagePreviewContainer" class="mt-3 relative max-w-xs hidden">
+                        <img id="postImagePreview" class="rounded-xl border border-gray-100 max-h-40 object-cover" src="" alt="Preview">
+                        <button onclick="clearPostImageSelection()" class="absolute top-1.5 right-1.5 bg-black/60 hover:bg-black/80 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs transition"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- รายการโพสต์ทั้งหมด (Feed) -->
+        <div id="postsFeed" class="space-y-5">
+            <div class="text-center py-12 bg-white rounded-2xl border border-gray-100 shadow-sm">
+                <div class="animate-spin text-indigo-500 text-2xl mb-2"><i class="fa-solid fa-circle-notch"></i></div>
+                <p class="text-xs text-gray-400">กำลังเชื่อมต่อคลังความรู้...</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- หน้าต่างแสดงโปรไฟล์และคลังโพสต์ย้อนหลัง (Profile Modal) -->
+    <div id="profileModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 hidden">
+        <div id="profileModalBox" class="bg-white w-full max-w-xl rounded-2xl shadow-2xl border border-gray-100 flex flex-col max-h-[90vh] transition-all duration-300 transform scale-100">
+            <!-- ส่วนหัวหน้าต่างป๊อปอัปโปรไฟล์ -->
+            <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 rounded-t-2xl">
+                <span class="text-xs font-semibold text-indigo-600 tracking-wider uppercase"><i class="fa-regular fa-id-card mr-1"></i> ข้อมูลประวัติการเรียน</span>
+                <div class="flex items-center space-x-2">
+                    <button id="maximizeProfileBtn" onclick="toggleMaximizeProfile()" class="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition text-sm" title="ขยายเต็มจอ">
+                        <i id="maximizeIcon" class="fa-solid fa-expand"></i>
+                    </button>
+                    <button onclick="closeProfileModal()" class="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition text-sm">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+            <!-- เนื้อหาภายในหน้าต่างโปรไฟล์ที่เลื่อนขึ้นลงได้ -->
+            <div class="p-6 overflow-y-auto flex-grow custom-scrollbar space-y-6">
+                <!-- ข้อมูลผู้ใช้งานพื้นฐาน -->
+                <div class="text-center pb-2 relative">
+                    <div id="profileAvatarContainer" class="w-20 h-20 mx-auto rounded-full bg-indigo-50 text-indigo-600 font-bold flex items-center justify-center text-2xl border-2 border-white shadow-md relative group">
+                        <img id="profileAvatarImg" class="w-full h-full rounded-full object-cover hidden" src="" alt="Avatar">
+                        <span id="profileAvatarTxt">U</span>
+                        <!-- ส่วนอัปโหลดรูปโปรไฟล์ -->
+                        <label id="changeAvatarLabel" class="absolute inset-0 bg-black/50 text-white text-[10px] font-medium rounded-full flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition duration-200 hidden">
+                            <i class="fa-solid fa-camera text-sm mb-1"></i>เปลี่ยนรูป
+                            <input type="file" id="avatarFileInput" accept="image/*" class="hidden" onchange="handleAvatarUpload(event)">
+                        </label>
+                    </div>
+                    <h3 id="profileName" class="text-lg font-bold text-gray-900 mt-3">ชื่อผู้ใช้งาน</h3>
+                    <p id="profileExpertise" class="text-xs text-indigo-600 font-medium mt-1">ยังไม่มีข้อมูลวิชาที่ถนัด</p>
+                    
+                    <!-- ปุ่มกดติดตาม (Follow / Unfollow) -->
+                    <div id="followActionContainer" class="mt-3 hidden">
+                        <button id="followBtn" onclick="toggleFollow()" class="text-xs px-4 py-1.5 rounded-full font-medium shadow-sm transition border flex items-center space-x-1.5 mx-auto">
+                        </button>
+                    </div>
+                </div>
+
+                <!-- การ์ดสรุปสถิติจริงและจำนวนเพื่อนผู้ติดตาม -->
+                <div class="grid grid-cols-4 gap-3">
+                    <div class="bg-gray-50/70 p-3 rounded-xl border border-gray-100 text-center">
+                        <span id="statPostCount" class="block text-base font-bold text-gray-800">0</span>
+                        <span class="text-[10px] text-gray-400">แชร์โพสต์</span>
+                    </div>
+                    <div class="bg-gray-50/70 p-3 rounded-xl border border-gray-100 text-center">
+                        <span id="statCommentCount" class="block text-base font-bold text-gray-800">0</span>
+                        <span class="text-[10px] text-gray-400">คำคอมเมนต์</span>
+                    </div>
+                    <div class="bg-gray-50/70 p-3 rounded-xl border border-gray-100 text-center">
+                        <span id="statFollowersCount" class="block text-base font-bold text-gray-800">0</span>
+                        <span class="text-[10px] text-gray-400">ผู้ติดตาม</span>
+                    </div>
+                    <div class="bg-gray-50/70 p-3 rounded-xl border border-gray-100 text-center">
+                        <span id="statFollowingCount" class="block text-base font-bold text-gray-800">0</span>
+                        <span class="text-[10px] text-gray-400">กำลังติดตาม</span>
+                    </div>
+                </div>
+
+                <!-- ข้อมูลแนะนำตัวย่อ -->
+                <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                    <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">แนะนำตัวสั้นๆ</h4>
+                    <p id="profileBio" class="text-xs text-gray-600 leading-relaxed italic">ไม่มีคำแนะนำตัว</p>
+                </div>
+
+                <!-- ฟอร์มแก้ไขข้อมูลโปรไฟล์ -->
+                <div id="editProfileSection" class="hidden border-t border-gray-100 pt-5 space-y-4">
+                    <h4 class="text-xs font-bold text-gray-800 flex items-center"><i class="fa-solid fa-pen-to-square text-indigo-500 mr-1.5"></i> แก้ไขข้อมูลไฟล์โปรไฟล์ของคุณ</h4>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-[11px] font-medium text-gray-500 mb-1">วิชาที่ถนัด (เช่น คณิต, อังกฤษ, ฟิสิกส์)</label>
+                            <input type="text" id="editExpertiseInput" class="w-full text-xs p-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500" placeholder="ระบุวิชาที่คุณเรียนเข้าใจเป็นพิเศษ">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-medium text-gray-500 mb-1">เขียนแนะนำตัวสักนิดให้เพื่อนๆ รู้จักกันมากขึ้น</label>
+                            <textarea id="editBioInput" rows="3" class="w-full text-xs p-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 resize-none" placeholder="แนะนำสไตล์การเรียน หรือแชร์เทคนิคดีๆ..."></textarea>
+                        </div>
+                    </div>
+                    <div class="flex space-x-2 pt-1">
+                        <button onclick="closeEditProfile()" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-600 py-2 rounded-xl text-xs font-medium transition">ยกเลิก</button>
+                        <button id="saveProfileBtn" onclick="saveProfileData()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-xl text-xs font-medium transition shadow-sm">บันทึกประวัติ</button>
+                    </div>
+                </div>
+
+                <!-- ปุ่มกดแสดงหน้าฟอร์มแก้ไข -->
+                <button id="openEditProfileBtn" onclick="openEditProfile()" class="w-full border border-gray-200 hover:border-indigo-500 hover:text-indigo-600 text-gray-500 py-2.5 rounded-xl text-xs font-medium transition flex items-center justify-center space-x-1.5 bg-white shadow-sm">
+                    <i class="fa-solid fa-user-gear"></i><span>แก้ไขข้อมูลสไตล์การเรียนของคุณ</span>
+                </button>
+
+                <!-- คลังประวัติโพสต์ย้อนหลังทั้งหมดของผู้ใช้นี้ -->
+                <div class="border-t border-gray-100 pt-5">
+                    <h4 class="text-xs font-bold text-gray-800 mb-3 flex items-center justify-between">
+                        <span><i class="fa-solid fa-clock-rotate-left text-indigo-500 mr-1.5"></i> คลังความรู้และโพสต์ทั้งหมด</span>
+                        <span id="historyCountBadge" class="bg-indigo-50 text-indigo-600 text-[10px] px-2 py-0.5 rounded-full font-bold">0 โพสต์</span>
+                    </h4>
+                    <div id="profilePostsHistoryList" class="space-y-3 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
+                        <!-- รายการโพสต์ในอดีตจะถูกแทรกเข้ามาตรงนี้ผ่าน JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- หน้าต่างแสดงป๊อปอัปรูปภาพขนาดเต็ม (Lightbox) -->
+    <div id="lightboxModal" class="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 p-4 opacity-0 pointer-events-none transition-opacity duration-200" onclick="closeLightbox()">
+        <button class="absolute top-4 right-4 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 w-10 h-10 rounded-full flex items-center justify-center transition text-lg">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="max-w-3xl max-h-[85vh] flex items-center justify-center relative" onclick="event.stopPropagation()">
+            <img id="lightboxImage" class="max-w-full max-h-[85vh] rounded-xl shadow-2xl object-contain border border-white/10" src="" alt="Large View">
+        </div>
+    </div>
+
+    <!-- หน้าต่างป๊อปอัปเข้าสู่ระบบ (Login Modal) -->
     <div id="loginModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 hidden">
         <div class="bg-white w-full max-w-md p-6 rounded-2xl shadow-xl border border-gray-100">
             <div class="text-center mb-6">
@@ -65,682 +250,925 @@
         </div>
     </div>
 
-    <!-- ป๊อปอัปแสดงโปรไฟล์ (Profile Modal) -->
-    <div id="profileModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 hidden">
-        <div class="bg-white w-full max-w-md p-6 rounded-2xl shadow-xl border border-gray-100 relative">
-            <button onclick="closeProfileModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg">✕</button>
-            
-            <div class="text-center mb-6">
-                <!-- วงกลมรูปโปรไฟล์ใหญ่ -->
-                <div id="profileAvatar" class="w-20 h-20 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-3xl mx-auto mb-3 overflow-hidden border-2 border-indigo-200">
-                    U
-                </div>
-                <h3 id="profileName" class="text-xl font-bold text-gray-900">ชื่อผู้ใช้งาน</h3>
-                <p id="profileExpertise" class="text-sm text-indigo-600 font-medium mt-1">ยังไม่มีข้อมูลวิชาที่ถนัด</p>
+    <!-- ระบบ Toast Notifications และ Custom Confirm Modal (กำจัด alert / confirm ดั้งเดิม) -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-[60] flex flex-col space-y-2 pointer-events-none"></div>
+
+    <div id="confirmModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[55] p-4 hidden">
+        <div class="bg-white w-full max-w-sm p-6 rounded-2xl shadow-2xl border border-gray-100 transform scale-100 transition duration-200">
+            <div class="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-3 text-xl">
+                <i class="fa-solid fa-triangle-exclamation"></i>
             </div>
-
-            <!-- ส่วนแสดงประวัติและสถิติ (โหมดปกติ) -->
-            <div id="profileViewMode" class="space-y-4">
-                <div class="bg-gray-50 p-3.5 rounded-xl border border-gray-100">
-                    <h4 class="text-xs font-semibold text-gray-500 mb-1">แนะนำตัว</h4>
-                    <p id="profileBio" class="text-sm text-gray-700">ไม่มีคำแนะนำตัว</p>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3 text-center">
-                    <div class="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                        <span id="statPostCount" class="block text-xl font-bold text-indigo-600">0</span>
-                        <span class="text-[10px] text-gray-500 uppercase font-medium">สรุปโน้ต / โพสต์</span>
-                    </div>
-                    <div class="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                        <span id="statCommentCount" class="block text-xl font-bold text-indigo-600">0</span>
-                        <span class="text-[10px] text-gray-500 uppercase font-medium">การช่วยคอมเมนต์</span>
-                    </div>
-                </div>
-
-                <button id="editProfileBtn" onclick="toggleProfileEdit(true)" class="hidden w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-2.5 rounded-xl text-xs font-semibold transition">
-                    แก้ไขโปรไฟล์ของฉัน
-                </button>
-            </div>
-
-            <!-- ส่วนแก้ไขโปรไฟล์ (โหมดแก้ไข) -->
-            <div id="profileEditMode" class="space-y-4 hidden">
-                <!-- ส่วนอัปโหลดรูปภาพโปรไฟล์ -->
-                <div class="bg-gray-50 p-3 rounded-xl border border-gray-100 flex flex-col items-center">
-                    <label class="block text-xs font-semibold text-gray-500 mb-2">เปลี่ยนรูปโปรไฟล์ของคุณ</label>
-                    <div class="relative group cursor-pointer">
-                        <div id="editAvatarPreview" class="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xl overflow-hidden border-2 border-indigo-200">
-                            U
-                        </div>
-                        <label for="profileAvatarInput" class="absolute inset-0 bg-black/40 text-white rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition cursor-pointer">
-                            <i class="fa-solid fa-camera"></i>
-                        </label>
-                    </div>
-                    <input type="file" id="profileAvatarInput" accept="image/*" class="hidden" onchange="previewProfileAvatar(this)">
-                    <p class="text-[10px] text-gray-400 mt-1.5">คลิกที่รูปด้านบนเพื่อเลือกไฟล์รูปภาพใหม่</p>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">วิชาที่ถนัด (เช่น คณิต, อังกฤษ)</label>
-                    <input type="text" id="editExpertiseInput" class="w-full p-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 text-sm" placeholder="ระบุวิชาที่คุณถนัด">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-600 mb-1">เขียนแนะนำตัวเองสั้นๆ</label>
-                    <textarea id="editBioInput" rows="3" class="w-full p-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 text-sm" placeholder="แนะนำตัวให้เพื่อนๆ รู้จักกันหน่อย"></textarea>
-                </div>
-                <div class="flex space-x-2 pt-2">
-                    <button onclick="toggleProfileEdit(false)" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2.5 rounded-xl text-xs font-semibold transition">ยกเลิก</button>
-                    <button id="saveProfileBtn" onclick="saveProfile()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl text-xs font-semibold transition shadow-sm">บันทึกข้อมูล</button>
-                </div>
+            <h4 id="confirmTitle" class="text-base font-bold text-gray-900 text-center">ยืนยันการดำเนินการ</h4>
+            <p id="confirmMessage" class="text-xs text-gray-500 text-center mt-2 leading-relaxed">กรุณายืนยันว่าคุณต้องการดำเนินการขั้นต่อไปใช่หรือไม่?</p>
+            <div class="flex space-x-2.5 mt-5">
+                <button id="confirmCancelBtn" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-600 py-2 rounded-xl text-xs font-medium transition">ยกเลิก</button>
+                <button id="confirmConfirmBtn" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded-xl text-xs font-medium transition shadow-sm">ยืนยัน</button>
             </div>
         </div>
     </div>
 
-    <!-- เนื้อหาหลักของเว็บ -->
-    <main class="max-w-4xl mx-auto px-4 py-6 mb-20">
-        <div class="mb-6">
-            <h1 class="text-2xl font-bold text-gray-900">สวัสดีครับ <span id="greetingName" class="text-indigo-600">เพื่อนๆ</span></h1>
-            <p class="text-gray-500 text-sm">วันนี้มีเรื่องไหนไม่เข้าใจ หรือมีสรุปดีๆ มาแชร์เพื่อนไหม <span class="text-xs text-amber-600 font-medium block mt-1">ทุกโพสต์จะหายไปอัตโนมัติภายใน 24 ชั่วโมง</span></p>
-        </div>
-
-        <!-- กล่องเขียนโพสต์ -->
-        <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6">
-            <h2 class="font-semibold text-gray-700 mb-3"><i class="fa-solid fa-pen-to-square text-indigo-500 mr-2"></i>โพสต์แชร์โน้ต หรือ ถามการบ้าน</h2>
-            <textarea id="postContent" rows="3" class="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 text-sm" placeholder="เขียนคำถาม หรืออธิบายโน้ตสรุปที่ต้องการแชร์..."></textarea>
-            
-            <div id="imagePreviewContainer" class="mt-2 hidden relative inline-block">
-                <img id="imagePreview" src="" class="max-h-40 rounded-lg border border-gray-200 shadow-sm">
-                <button onclick="clearSelectedImage()" class="absolute -top-2 -right-2 bg-red-500 text-white w-6 h-6 rounded-full text-xs flex items-center justify-center shadow-md hover:bg-red-600">✕</button>
-            </div>
-
-            <div class="flex justify-between items-center mt-3">
-                <div class="flex flex-wrap items-center gap-2">
-                    <!-- ตัวเลือกวิชาหลัก -->
-                    <select id="postTagSelect" onchange="handleTagChange(this)" class="text-xs bg-gray-100 border-none rounded-lg p-2 text-gray-600 focus:outline-none">
-                        <option value="#คณิตศาสตร์">#คณิตศาสตร์</option>
-                        <option value="#ภาษาอังกฤษ">#ภาษาอังกฤษ</option>
-                        <option value="#วิทยาศาสตร์">#วิทยาศาสตร์</option>
-                        <option value="#ภาษาไทย">#ภาษาไทย</option>
-                        <option value="#สังคมศึกษา">#สังคมศึกษา</option>
-                        <option value="custom">พิมพ์แฮชแท็กเอง...</option>
-                    </select>
-                    
-                    <!-- ช่องระบุแฮชแท็กเพิ่มเอง -->
-                    <input type="text" id="customTagInput" class="hidden text-xs bg-gray-100 border border-gray-200 rounded-lg p-2 w-32 focus:outline-none focus:border-indigo-500" placeholder="#ชื่อวิชา">
-
-                    <label class="cursor-pointer text-gray-400 hover:text-indigo-500 transition duration-150 ml-1">
-                        <i class="fa-regular fa-image text-xl"></i>
-                        <input type="file" id="postImageInput" accept="image/*" class="hidden" onchange="previewImage(this)">
-                    </label>
-                </div>
-                <button onclick="addPost()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-xl text-sm font-medium transition duration-200 shadow-sm">
-                    โพสต์เลย
-                </button>
-            </div>
-        </div>
-
-        <!-- ฟีดแสดงข้อมูล -->
-        <div id="feedContainer" class="space-y-4">
-            <p class="text-center text-gray-400 text-sm py-8">กำลังโหลดข้อมูล...</p>
-        </div>
-    </main>
-
+    <!-- นำเข้าไลบรารี Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
+        // แก้ไขลิงก์เชื่อมต่อให้ถูกต้อง 100% แล้วครับคุณวายุ
         const SUPABASE_URL = "https://djxvkqxocdowocadzrte.supabase.co"; 
-        const SUPABASE_KEY = "sb_publishable_wZW2fNiTJp5mPcBHChRdXQ_4Hf5EIlv"; 
+        const SUPABASE_KEY = "sb_publishable_wZW2fNiTJp5mPcBHChRdXQ_4Hf5EIlv";
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // ตัวแปรเก็บแคชของรูปโปรไฟล์ผู้ใช้งานเพื่อหลีกเลี่ยงการอัปเดตช้า
-        let loadedProfiles = {};
+        // ตัวแปรเก็บสถานะการทำงานในแอปพลิเคชัน
+        let currentUser = null;
+        let selectedPostImageFile = null;
+        let selectedCommentFiles = {}; // แผนที่เก็บคู่รูปภาพคอมเมนต์ย่อยของแต่ละโพสต์ [postId]: file
+        let viewedProfileUsername = null; 
+        let isProfileMaximized = false;   
+        let currentFeedMode = 'all';      
 
-        async function updateNavAndGreetingAvatar(username) {
-            if (!username) return;
-            const { data: profile } = await supabaseClient
-                .from('profiles')
-                .select('avatar_url')
-                .eq('username', username)
-                .single();
+        // ฟังก์ชันระบบแจ้งเตือน Toast (ไม่มีการใช้ alert())
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `p-3.5 rounded-xl shadow-lg border text-xs font-medium text-white transition-all duration-300 transform translate-y-2 opacity-0 pointer-events-auto flex items-center space-x-2 max-w-sm ${
+                type === 'success' ? 'bg-emerald-600 border-emerald-500' :
+                type === 'error' ? 'bg-rose-600 border-rose-500' :
+                type === 'warning' ? 'bg-amber-500 border-amber-400' : 'bg-indigo-600 border-indigo-500'
+            }`;
 
-            const navAvatar = document.getElementById('navUserAvatar');
-            if (profile && profile.avatar_url) {
-                navAvatar.innerHTML = `<img src="${profile.avatar_url}" class="w-full h-full object-cover">`;
-                loadedProfiles[username] = profile.avatar_url;
-            } else {
-                navAvatar.innerHTML = username[0].toUpperCase();
-            }
+            const icon = type === 'success' ? '<i class="fa-solid fa-circle-check"></i>' :
+                         type === 'error' ? '<i class="fa-solid fa-circle-exclamation"></i>' :
+                         type === 'warning' ? '<i class="fa-solid fa-triangle-exclamation"></i>' : '<i class="fa-solid fa-circle-info"></i>';
+
+            toast.innerHTML = `${icon} <span>${message}</span>`;
+            container.appendChild(toast);
+
+            // เอฟเฟกต์เฟดอิน
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            // เอฟเฟกต์เฟดเอาต์อัตโนมัติใน 3.5 วินาที
+            setTimeout(() => {
+                toast.classList.add('translate-y-2', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
         }
 
-        function checkLoginStatus() {
-            const user = JSON.parse(localStorage.getItem('peerUser'));
-            if (user) {
-                document.getElementById('loginModal').classList.add('hidden');
-                document.getElementById('userInfoDisplay').classList.remove('hidden');
-                document.getElementById('logoutBtn').classList.remove('hidden');
-                document.getElementById('currentUserName').innerText = user.name;
-                document.getElementById('greetingName').innerText = user.name;
-                updateNavAndGreetingAvatar(user.name);
-            } else {
-                document.getElementById('loginModal').classList.remove('hidden');
-                document.getElementById('userInfoDisplay').classList.add('hidden');
-                document.getElementById('logoutBtn').classList.add('hidden');
-            }
+        // ฟังก์ชันตอบรับตกลง Custom Confirm Modal (ไม่มีการใช้ confirm())
+        function showConfirm(title, message, onConfirm) {
+            const modal = document.getElementById('confirmModal');
+            document.getElementById('confirmTitle').innerText = title;
+            document.getElementById('confirmMessage').innerText = message;
+            modal.classList.remove('hidden');
+
+            const cancelBtn = document.getElementById('confirmCancelBtn');
+            const confirmBtn = document.getElementById('confirmConfirmBtn');
+
+            // ลบ Event Listeners ตัวเก่าออกเพื่อไม่ให้เรียกซ้ำ
+            const newCancelBtn = cancelBtn.cloneNode(true);
+            const newConfirmBtn = confirmBtn.cloneNode(true);
+            cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+            confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+
+            newCancelBtn.onclick = () => modal.classList.add('hidden');
+            newConfirmBtn.onclick = () => {
+                modal.classList.add('hidden');
+                onConfirm();
+            };
         }
 
+        // เริ่มต้นตรวจสอบเซสชันและโหลดข้อมูลหน้าเว็บ
+        window.onload = function() {
+            const savedUser = localStorage.getItem('peer_user');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                updateNavbarUI();
+                document.getElementById('createPostBox').classList.remove('hidden');
+                document.getElementById('feedTabs').classList.remove('hidden');
+
+                // ดึงข้อมูลรูปอวาตาร์ไปโชว์ที่ช่องสร้างโพสต์
+                fetch(`https://djxvkqxocdowocadzrte.supabase.co/rest/v1/profiles?username=eq.${encodeURIComponent(currentUser.name)}&select=*`, {
+                    headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    const avatarBtn = document.getElementById('createPostAvatar');
+                    if (data && data[0] && data[0].avatar_url) {
+                        avatarBtn.innerHTML = `<img src="${data[0].avatar_url}" class="w-full h-full rounded-full object-cover">`;
+                    } else {
+                        avatarBtn.innerText = currentUser.name.charAt(0).toUpperCase();
+                    }
+                });
+            } else {
+                // เด้งหน้าต่างล็อกอินลอยขึ้นมาทันทีเมื่อผู้ใช้ใหม่เข้ามาใช้งานครั้งแรก
+                openLoginModal();
+            }
+            fetchPosts();
+            updateFollowingBuddiesBar(); 
+        };
+
+        // ฟังก์ชันปิด-เปิด หน้าต่างล็อกอิน
+        function openLoginModal() { document.getElementById('loginModal').classList.remove('hidden'); }
+        function closeLoginModal() { document.getElementById('loginModal').classList.add('hidden'); }
+
+        // ฟังก์ชันล็อกอิน
         function login() {
             const name = document.getElementById('loginName').value.trim();
             const email = document.getElementById('loginEmail').value.trim();
             const phone = document.getElementById('loginPhone').value.trim();
             const phoneError = document.getElementById('phoneError');
 
-            if (!name || !email || !phone) {
-                alert("กรุณากรอกข้อมูลให้ครบทุกช่องก่อนเข้าใช้งานครับ");
-                return;
-            }
+            if (!name || !email || !phone) { showToast('กรุณากรอกข้อมูลให้ครบถ้วนทุกช่องครับ', 'warning'); return; }
+            if (phone.length !== 10 || isNaN(phone)) { phoneError.classList.remove('hidden'); return; }
+            phoneError.classList.add('hidden');
 
-            const phonePattern = /^[0-9]{10}$/;
-            if (!phonePattern.test(phone)) {
-                phoneError.classList.remove('hidden');
-                alert("รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง ต้องเป็นตัวเลข 10 หลัก");
-                return;
-            } else {
-                phoneError.classList.add('hidden');
-            }
-
-            const userData = { name, email, phone };
-            localStorage.setItem('peerUser', JSON.stringify(userData));
+            currentUser = { name, email, phone };
+            localStorage.setItem('peer_user', JSON.stringify(currentUser));
             
-            checkLoginStatus();
+            updateNavbarUI();
+            closeLoginModal();
+            document.getElementById('createPostBox').classList.remove('hidden');
+            document.getElementById('feedTabs').classList.remove('hidden');
+            showToast(`ยินดีต้อนรับสู่ระบบครับคุณ ${name}!`, 'success');
+            
+            fetch(`https://djxvkqxocdowocadzrte.supabase.co/rest/v1/profiles?username=eq.${encodeURIComponent(currentUser.name)}&select=*`, {
+                headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
+            })
+            .then(res => res.json())
+            .then(data => {
+                const avatarBtn = document.getElementById('createPostAvatar');
+                if (data && data[0] && data[0].avatar_url) {
+                    avatarBtn.innerHTML = `<img src="${data[0].avatar_url}" class="w-full h-full rounded-full object-cover">`;
+                } else {
+                    avatarBtn.innerText = currentUser.name.charAt(0).toUpperCase();
+                }
+            });
+
+            fetchPosts();
+            updateFollowingBuddiesBar();
+        }
+
+        // ฟังก์ชันออกจากระบบ
+        function logout() {
+            showConfirm(
+                "ออกจากระบบ?", 
+                "คุณต้องการลงชื่อออกจากระบบจับมือเรียนใช่หรือไม่?", 
+                () => {
+                    localStorage.removeItem('peer_user');
+                    currentUser = null;
+                    document.getElementById('createPostBox').classList.add('hidden');
+                    document.getElementById('feedTabs').classList.add('hidden');
+                    document.getElementById('followingBuddiesContainer').classList.add('hidden'); 
+                    currentFeedMode = 'all';
+                    updateNavbarUI();
+                    fetchPosts();
+                    openLoginModal();
+                    showToast("คุณออกจากระบบเรียบร้อยแล้ว", "info");
+                }
+            );
+        }
+
+        // อัปเดตโครงสร้าง UI แถบเมนูด้านบนตามสถานะล็อกอิน
+        function updateNavbarUI() {
+            const userSection = document.getElementById('userSection');
+            if (currentUser) {
+                fetch(`https://djxvkqxocdowocadzrte.supabase.co/rest/v1/profiles?username=eq.${encodeURIComponent(currentUser.name)}&select=*`, {
+                    headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    let avatarHtml = `<div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-xs border border-indigo-200 shadow-inner">${currentUser.name.charAt(0).toUpperCase()}</div>`;
+                    if (data && data[0] && data[0].avatar_url) {
+                        avatarHtml = `<img src="${data[0].avatar_url}" class="w-8 h-8 rounded-full object-cover border border-indigo-200 shadow-sm">`;
+                    }
+
+                    userSection.innerHTML = `
+                        <div class="flex items-center space-x-2.5 bg-gray-50 p-1.5 pr-3 rounded-xl border border-gray-100 cursor-pointer hover:bg-gray-100 transition" onclick="openProfileModal('${currentUser.name}')">
+                            ${avatarHtml}
+                            <span class="text-xs font-semibold text-gray-700 max-w-[100px] truncate">${currentUser.name}</span>
+                        </div>
+                        <button onclick="logout()" class="text-gray-400 hover:text-red-500 p-2 rounded-xl text-sm transition" title="ออกจากระบบ">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                        </button>
+                    `;
+                });
+            } else {
+                userSection.innerHTML = `
+                    <button onclick="openLoginModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition shadow-sm">
+                        เข้าสู่ระบบ
+                    </button>
+                `;
+            }
+        }
+
+        // ฟังก์ชันสลับระหว่างแท็บ "ฟีดทั้งหมด" และ "เฉพาะคนที่ติดตาม"
+        function switchFeed(mode) {
+            currentFeedMode = mode;
+            const tabAll = document.getElementById('tabAll');
+            const tabFollow = document.getElementById('tabFollow');
+            
+            if (mode === 'all') {
+                tabAll.className = "flex-1 py-2 text-xs font-medium rounded-lg text-center transition bg-white text-indigo-600 shadow-sm";
+                tabFollow.className = "flex-1 py-2 text-xs font-medium rounded-lg text-center transition text-gray-600 hover:text-gray-900";
+            } else {
+                tabFollow.className = "flex-1 py-2 text-xs font-medium rounded-lg text-center transition bg-white text-indigo-600 shadow-sm";
+                tabAll.className = "flex-1 py-2 text-xs font-medium rounded-lg text-center transition text-gray-600 hover:text-gray-900";
+            }
             fetchPosts();
         }
 
-        function logout() {
-            if(confirm("คุณต้องการออกจากระบบใช่หรือไม่")) {
-                localStorage.removeItem('peerUser');
-                location.reload();
-            }
-        }
-
-        // --- 📸 ระบบพรีวิวรูปภาพต่างๆ ---
-
-        function previewImage(input) {
-            const file = input.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('imagePreview').src = e.target.result;
-                    document.getElementById('imagePreviewContainer').classList.remove('hidden');
-                }
-                reader.readAsDataURL(file);
-            }
-        }
-
-        function clearSelectedImage() {
-            document.getElementById('postImageInput').value = "";
-            document.getElementById('imagePreview').src = "";
-            document.getElementById('imagePreviewContainer').classList.add('hidden');
-        }
-
-        // ระบบพรีวิวภาพโปรไฟล์ขณะแก้ไข
-        function previewProfileAvatar(input) {
-            const file = input.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const previewBox = document.getElementById('editAvatarPreview');
-                    previewBox.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover">`;
-                }
-                reader.readAsDataURL(file);
-            }
-        }
-
-        function handleTagChange(selectElement) {
-            const customInput = document.getElementById('customTagInput');
-            if (selectElement.value === 'custom') {
-                customInput.classList.remove('hidden');
-                customInput.focus();
-            } else {
-                customInput.classList.add('hidden');
-                customInput.value = '';
-            }
-        }
-
-        // --- STREAMING_CHUNK: Defining Profile Functions... ---
-        // --- 👥 ฟังก์ชันระบบโปรไฟล์ (Profile Functions) ---
-
-        async function openProfile(username) {
-            const currentUser = JSON.parse(localStorage.getItem('peerUser'));
+        // ฟังก์ชันจัดการเลือกรูปภาพที่จะแชร์ประกอบโพสต์
+        function handlePostImageSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            selectedPostImageFile = file;
+            document.getElementById('uploadStatusText').innerText = "เลือกรูปภาพสำเร็จ!";
             
-            // 1. ดึงข้อมูลโปรไฟล์จาก Supabase
-            const { data: profile, error } = await supabaseClient
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('postImagePreview').src = e.target.result;
+                document.getElementById('postImagePreviewContainer').classList.remove('hidden');
+            }
+            reader.readAsDataURL(file);
+        }
+
+        // ฟังก์ชันล้างการเลือกรูปภาพสรุปโน้ต
+        function clearPostImageSelection() {
+            selectedPostImageFile = null;
+            document.getElementById('postImageInput').value = "";
+            document.getElementById('uploadStatusText').innerText = "แนบรูปภาพสรุปโน้ต";
+            document.getElementById('postImagePreviewContainer').classList.add('hidden');
+            document.getElementById('postImagePreview').src = "";
+        }
+
+        // ฟังก์ชันสร้างโพสต์ใหม่ลงฐานข้อมูล
+        async function createPost() {
+            if (!currentUser) { showToast("กรุณาเข้าสู่ระบบก่อนร่วมแชร์เนื้อหาครับ", "warning"); openLoginModal(); return; }
+            const content = document.getElementById('postContent').value.trim();
+            if (!content && !selectedPostImageFile) { showToast("กรุณาพิมพ์เนื้อหาความรู้หรือแนบรูปภาพโน้ตสรุปก่อนกดแชร์ครับ", "warning"); return; }
+
+            let uploadedImageUrl = null;
+
+            if (selectedPostImageFile) {
+                const cleanExtension = selectedPostImageFile.name.split('.').pop();
+                const englishSafeName = `img-${Date.now()}-${Math.floor(Math.random() * 1000)}.${cleanExtension}`;
+
+                const { data: uploadData, error: uploadError } = await supabaseClient
+                    .storage
+                    .from('note-images')
+                    .upload(englishSafeName, selectedPostImageFile);
+
+                if (uploadError) { showToast("อัปโหลดไฟล์รูปภาพสรุปล้มเหลว: " + uploadError.message, "error"); return; }
+                
+                const { data: publicUrlData } = supabaseClient
+                    .storage
+                    .from('note-images')
+                    .getPublicUrl(englishSafeName);
+                
+                uploadedImageUrl = publicUrlData.publicUrl;
+            }
+
+            const { error } = await supabaseClient
+                .from('posts')
+                .insert([{
+                    username: currentUser.name,
+                    content: content,
+                    image_url: uploadedImageUrl
+                }]);
+
+            if (error) {
+                showToast("แชร์โพสต์ไม่สำเร็จ: " + error.message, "error");
+            } else {
+                document.getElementById('postContent').value = "";
+                clearPostImageSelection();
+                showToast("แบ่งปันความรู้ลงฟีดสำเร็จแล้ว!", "success");
+                fetchPosts();
+                updateFollowingBuddiesBar(); 
+            }
+        }
+
+        // ฟังก์ชันจัดการเลือกรูปสำหรับคอมเมนต์ช่วยเพื่อน (Comment Attachment)
+        function handleCommentImageSelect(postId, event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            selectedCommentFiles[postId] = file;
+
+            const previewContainer = document.getElementById(`commentPreviewContainer-${postId}`);
+            const previewImg = document.getElementById(`commentPreview-${postId}`);
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImg.src = e.target.result;
+                previewContainer.classList.remove('hidden');
+            }
+            reader.readAsDataURL(file);
+        }
+
+        // ฟังก์ชันลบตัวเลือกรูปภาพในคอมเมนต์ก่อนกดส่ง
+        function clearCommentImageSelection(postId) {
+            delete selectedCommentFiles[postId];
+            document.getElementById(`commentImageInput-${postId}`).value = "";
+            document.getElementById(`commentPreviewContainer-${postId}`).classList.add('hidden');
+            document.getElementById(`commentPreview-${postId}`).src = "";
+        }
+
+        // ดึงรายการโพสต์และคอมเมนต์มาแสดงผลบนไทม์ไลน์หลัก
+        async function fetchPosts() {
+            const feedContainer = document.getElementById('postsFeed');
+
+            let followingList = [];
+            if (currentUser) {
+                const { data: followData } = await supabaseClient
+                    .from('follows')
+                    .select('following_username')
+                    .eq('follower_username', currentUser.name);
+                if (followData) {
+                    followingList = followData.map(f => f.following_username);
+                }
+            }
+
+            let query = supabaseClient.from('posts').select('*');
+            
+            if (currentFeedMode === 'follow') {
+                if (followingList.length === 0) {
+                    feedContainer.innerHTML = `
+                        <div class="text-center py-12 bg-white rounded-2xl border border-gray-100 shadow-sm px-4">
+                            <div class="w-12 h-12 bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center mx-auto mb-3 text-lg"><i class="fa-solid fa-user-plus"></i></div>
+                            <h4 class="text-sm font-bold text-gray-800">ยังไม่พบคู่หูเรียนบนฟีดเฉพาะกิจ</h4>
+                            <p class="text-xs text-gray-400 mt-1 max-w-xs mx-auto">คุณยังไม่ได้กดติดตามใคร หรือคนที่คุณติดตามยังไม่ได้เริ่มแชร์โพสต์ คุณสามารถไปกดติดตามเพื่อนได้ผ่านการคลิกดูโปรไฟล์ของพวกเขาบนฟีดหลักครับ</p>
+                        </div>
+                    `;
+                    return;
+                }
+                query = query.in('username', followingList).order('created_at', { ascending: false });
+            } else {
+                const limitTime = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+                query = query.gt('created_at', limitTime).order('created_at', { ascending: false });
+            }
+
+            const { data: posts, error: postsError } = await query;
+            if (postsError) { feedContainer.innerHTML = `<p class="text-center text-xs text-red-500 py-6">เกิดข้อผิดพลาดในการโหลดข้อมูลโพสต์: ${postsError.message}</p>`; return; }
+
+            const [ { data: comments }, { data: profiles } ] = await Promise.all([
+                supabaseClient.from('comments').select('*').order('created_at', { ascending: true }),
+                supabaseClient.from('profiles').select('*')
+            ]);
+
+            if (!posts || posts.length === 0) {
+                feedContainer.innerHTML = `
+                    <div class="text-center py-12 bg-white rounded-2xl border border-gray-100 shadow-sm">
+                        <div class="w-12 h-12 bg-gray-50 text-gray-400 rounded-full flex items-center justify-center mx-auto mb-3 text-lg"><i class="fa-regular fa-folder-open"></i></div>
+                        <p class="text-xs text-gray-400">ยังไม่มีเนื้อหาถูกแชร์บนฟีดนี้ในขณะนี้</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let feedHtml = "";
+            posts.forEach(post => {
+                const postComments = comments ? comments.filter(c => c.post_id === post.id) : [];
+                
+                const authorProfile = profiles ? profiles.find(p => p.username === post.username) : null;
+                let avatarHtml = `<div class="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 font-bold flex items-center justify-center text-sm border border-indigo-100 shadow-inner flex-shrink-0">${post.username.charAt(0).toUpperCase()}</div>`;
+                if (authorProfile && authorProfile.avatar_url) {
+                    avatarHtml = `<img src="${authorProfile.avatar_url}" class="w-10 h-10 rounded-full object-cover border border-gray-100 flex-shrink-0">`;
+                }
+
+                const isMyPost = currentUser && currentUser.name === post.username;
+                const deletePostBtn = isMyPost 
+                    ? `<button onclick="deletePost(${post.id})" class="text-gray-400 hover:text-red-500 p-1.5 transition rounded-lg hover:bg-gray-50" title="ลบโพสต์"><i class="fa-regular fa-trash-can text-xs"></i></button>` 
+                    : '';
+
+                let imageHtml = "";
+                if (post.image_url) {
+                    imageHtml = `<div class="mt-3 overflow-hidden rounded-xl border border-gray-50 max-h-64 bg-gray-50 cursor-zoom-in shadow-inner" onclick="openLightbox('${post.image_url}')">
+                        <img class="w-full h-full object-cover hover:scale-[1.02] transition duration-200" src="${post.image_url}" alt="Attachment Note">
+                    </div>`;
+                }
+
+                let commentsListHtml = "";
+                postComments.forEach(comment => {
+                    const isMyComment = currentUser && currentUser.name === comment.username;
+                    const deleteCommentBtnHtml = isMyComment 
+                        ? `<button onclick="deleteComment(${comment.id})" class="text-red-400 hover:text-red-600 p-1 transition ml-1" title="ลบความคิดเห็น"><i class="fa-regular fa-trash-can text-[10px]"></i></button>`
+                        : '';
+
+                    let commentAttachedImageHtml = "";
+                    if (comment.image_url) {
+                        commentAttachedImageHtml = `
+                            <div class="mt-1.5 rounded-lg overflow-hidden border border-gray-100 max-w-[150px] max-h-32 bg-gray-100 cursor-zoom-in" onclick="openLightbox('${comment.image_url}')">
+                                <img src="${comment.image_url}" class="w-full h-full object-cover hover:scale-105 transition duration-150">
+                            </div>
+                        `;
+                    }
+
+                    commentsListHtml += `
+                        <div class="bg-gray-50/70 p-2.5 rounded-xl border border-gray-100/60 text-xs">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="font-semibold text-indigo-600 cursor-pointer hover:underline" onclick="openProfileModal('${comment.username}')">${comment.username}</span>
+                                <div class="flex items-center space-x-1 text-gray-400 text-[10px]">
+                                    <span>${new Date(comment.created_at).toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'})} น.</span>
+                                    ${deleteCommentBtnHtml}
+                                </div>
+                            </div>
+                            <p class="text-gray-700 leading-relaxed">${comment.content}</p>
+                            ${commentAttachedImageHtml}
+                        </div>
+                    `;
+                });
+
+                feedHtml += `
+                    <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition duration-200">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3 cursor-pointer" onclick="openProfileModal('${post.username}')">
+                                ${avatarHtml}
+                                <div>
+                                    <h4 class="text-sm font-bold text-gray-900 hover:text-indigo-600 transition flex items-center gap-1">
+                                        ${post.username}
+                                    </h4>
+                                    <span class="text-[10px] text-gray-400 block mt-0.5">${new Date(post.created_at).toLocaleTimeString('th-TH')} น.</span>
+                                </div>
+                            </div>
+                            ${deletePostBtn}
+                        </div>
+
+                        <p class="text-sm text-gray-700 mt-3 whitespace-pre-line leading-relaxed">${post.content}</p>
+                        ${imageHtml}
+
+                        <div class="flex items-center space-x-1.5 text-xs text-gray-400 mt-4 pt-3 border-t border-gray-50">
+                            <i class="fa-regular fa-comment-dots text-sm"></i>
+                            <span class="font-medium">${postComments.length} ความคิดเห็นช่วยเพื่อนเรียน</span>
+                        </div>
+
+                        <div class="mt-3 space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-1">
+                            ${commentsListHtml}
+                        </div>
+
+                        <!-- กล่องฟอร์มคอมเมนต์พร้อมแนบรูปภาพ -->
+                        <div class="mt-3 flex flex-col space-y-2 bg-gray-50 rounded-xl p-2 border border-gray-100 focus-within:border-indigo-400 focus-within:bg-white transition duration-150">
+                            <div class="flex items-center space-x-2">
+                                <input type="text" id="commentInput-${post.id}" class="flex-grow text-xs text-gray-700 placeholder-gray-400 bg-transparent focus:outline-none px-2" placeholder="พิมพ์ช่วยตอบคำถามหรือแสดงความคิดเห็น...">
+                                
+                                <!-- ปุ่มเลือกแนบรูปภาพคอมเมนต์ -->
+                                <label class="cursor-pointer text-gray-400 hover:text-indigo-600 transition p-1.5 rounded-lg hover:bg-gray-100 flex items-center justify-center" title="แนบภาพเฉลยคำตอบ">
+                                    <i class="fa-regular fa-image text-sm"></i>
+                                    <input type="file" id="commentImageInput-${post.id}" accept="image/*" class="hidden" onchange="handleCommentImageSelect(${post.id}, event)">
+                                </label>
+
+                                <button onclick="createComment(${post.id})" class="w-8 h-8 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex items-center justify-center transition shadow-sm text-xs flex-shrink-0">
+                                    <i class="fa-regular fa-paper-plane"></i>
+                                </button>
+                            </div>
+                            <!-- แถบแสดงพรีวิวรูปภาพคอมเมนต์ก่อนกดส่ง -->
+                            <div id="commentPreviewContainer-${post.id}" class="relative max-w-[100px] hidden pt-1">
+                                <img id="commentPreview-${post.id}" class="rounded-lg border border-gray-100 max-h-16 object-cover" src="" alt="Comment Preview">
+                                <button onclick="clearCommentImageSelection(${post.id})" class="absolute -top-1 -right-1 bg-black/60 hover:bg-black/80 text-white w-4.5 h-4.5 rounded-full flex items-center justify-center text-[8px] transition"><i class="fa-solid fa-xmark"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            feedContainer.innerHTML = feedHtml;
+        }
+
+        // ฟังก์ชันลบโพสต์หลักออกจากระบบคลังข้อมูล
+        function deletePost(postId) {
+            showConfirm(
+                "ลบโพสต์วิชาเรียน?", 
+                "คุณแน่ใจใช่ไหมว่าต้องการลบโพสต์แชร์ความรู้อันนี้ออกจากไทม์ไลน์หลัก?", 
+                async () => {
+                    const { error } = await supabaseClient.from('posts').delete().eq('id', postId);
+                    if (error) { 
+                        showToast("ลบโพสต์ไม่สำเร็จ: " + error.message, "error"); 
+                    } else { 
+                        showToast("ลบโพสต์แชร์ความรู้เรียบร้อยแล้ว", "success");
+                        fetchPosts(); 
+                        updateFollowingBuddiesBar(); 
+                    }
+                }
+            );
+        }
+
+        // ฟังก์ชันส่งบันทึกความคิดเห็นย่อยช่วยเพื่อนเรียน (รองรับการคอมเมนต์แนบรูปภาพ)
+        async function createComment(postId) {
+            if (!currentUser) { showToast("กรุณาลงทะเบียนหรือเข้าสู่ระบบก่อนตอบคอมเมนต์ช่วยเพื่อนครับ", "warning"); openLoginModal(); return; }
+            const inputField = document.getElementById(`commentInput-${postId}`);
+            const content = inputField.value.trim();
+            const commentFile = selectedCommentFiles[postId];
+
+            if (!content && !commentFile) return;
+
+            let uploadedImageUrl = null;
+
+            // ตรวจสอบว่าในคำตอบมีการแนบรูปภาพมาด้วยหรือไม่
+            if (commentFile) {
+                const cleanExtension = commentFile.name.split('.').pop();
+                const englishSafeName = `cmt-${Date.now()}-${Math.floor(Math.random() * 1000)}.${cleanExtension}`;
+
+                const { data: uploadData, error: uploadError } = await supabaseClient
+                    .storage
+                    .from('note-images') // บันทึกในกล่องเก็บรูปภาพโน้ตร่วมกัน
+                    .upload(englishSafeName, commentFile);
+
+                if (uploadError) { showToast("อัปโหลดรูปภาพคอมเมนต์ล้มเหลว: " + uploadError.message, "error"); return; }
+                
+                const { data: publicUrlData } = supabaseClient
+                    .storage
+                    .from('note-images')
+                    .getPublicUrl(englishSafeName);
+                
+                uploadedImageUrl = publicUrlData.publicUrl;
+            }
+
+            const { error } = await supabaseClient
+                .from('comments')
+                .insert([{
+                    post_id: postId,
+                    username: currentUser.name,
+                    content: content,
+                    image_url: uploadedImageUrl
+                }]);
+
+            if (error) {
+                showToast("ส่งคอมเมนต์ไม่สำเร็จ: " + error.message, "error");
+            } else {
+                inputField.value = "";
+                clearCommentImageSelection(postId);
+                showToast("ส่งความคิดเห็นช่วยเพื่อนเรียนสำเร็จ!", "success");
+                fetchPosts();
+                updateFollowingBuddiesBar(); 
+            }
+        }
+
+        // ฟังก์ชันลบข้อความคอมเมนต์ย่อยออกจากระบบ
+        function deleteComment(commentId) {
+            showConfirm(
+                "ลบความคิดเห็น?", 
+                "คุณแน่ใจใช่ไหมว่าต้องการลบข้อความตอบกลับช่วยเรียนอันนี้?", 
+                async () => {
+                    const { error } = await supabaseClient.from('comments').delete().eq('id', commentId);
+                    if (error) { 
+                        showToast("ลบความคิดเห็นไม่สำเร็จ: " + error.message, "error"); 
+                    } else { 
+                        showToast("ลบความคิดเห็นสำเร็จแล้ว", "success");
+                        fetchPosts(); 
+                        updateFollowingBuddiesBar(); 
+                    }
+                }
+            );
+        }
+
+        // อัปเดตแถบคู่หูที่กำลังติดตามด้านบนสุด (Following Buddies Bar)
+        async function updateFollowingBuddiesBar() {
+            const container = document.getElementById('followingBuddiesContainer');
+            const listElement = document.getElementById('buddiesList');
+
+            if (!currentUser) {
+                container.classList.add('hidden');
+                return;
+            }
+
+            const { data: followData, error: followErr } = await supabaseClient
+                .from('follows')
+                .select('following_username')
+                .eq('follower_username', currentUser.name);
+
+            if (followErr || !followData || followData.length === 0) {
+                container.classList.add('hidden');
+                return;
+            }
+
+            const followingUsernames = followData.map(f => f.following_username);
+
+            const { data: profilesData } = await supabaseClient
+                .from('profiles')
+                .select('username, avatar_url')
+                .in('username', followingUsernames);
+
+            let buddiesHtml = "";
+            followingUsernames.forEach(username => {
+                const prof = profilesData ? profilesData.find(p => p.username === username) : null;
+                
+                let avatarItemHtml = `<div class="w-12 h-12 rounded-full bg-indigo-50 text-indigo-600 font-bold flex items-center justify-center text-sm border-2 border-indigo-400 shadow-sm flex-shrink-0 group-hover:scale-105 transition duration-200">${username.charAt(0).toUpperCase()}</div>`;
+                if (prof && prof.avatar_url) {
+                    avatarItemHtml = `<img src="${prof.avatar_url}" class="w-12 h-12 rounded-full object-cover border-2 border-indigo-400 shadow-sm flex-shrink-0 group-hover:scale-105 transition duration-200">`;
+                }
+
+                buddiesHtml += `
+                    <div class="flex flex-col items-center space-y-1 cursor-pointer group flex-shrink-0 min-w-[65px]" onclick="openProfileModal('${username}')">
+                        <div class="relative">
+                            ${avatarItemHtml}
+                            <span class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full"></span>
+                        </div>
+                        <span class="text-[10px] text-gray-600 font-medium max-w-[60px] truncate text-center block group-hover:text-indigo-600 transition">${username}</span>
+                    </div>
+                `;
+            });
+
+            listElement.innerHTML = buddiesHtml;
+            container.classList.remove('hidden'); 
+        }
+
+        // ระบบหน้าต่างโปรไฟล์คลังความรู้ย้อนหลัง (Profile & History Archive System)
+        async function openProfileModal(username) {
+            viewedProfileUsername = username;
+            isProfileMaximized = false; 
+            applyProfileModalSize();
+
+            document.getElementById('profileModal').classList.remove('hidden');
+            document.getElementById('profileName').innerText = username;
+
+            const isMyOwnProfile = currentUser && currentUser.name === username;
+            
+            if (isMyOwnProfile) {
+                document.getElementById('openEditProfileBtn').classList.remove('hidden');
+                document.getElementById('changeAvatarLabel').classList.remove('hidden');
+                document.getElementById('followActionContainer').classList.add('hidden');
+            } else {
+                document.getElementById('openEditProfileBtn').classList.add('hidden');
+                document.getElementById('changeAvatarLabel').classList.add('hidden');
+                document.getElementById('followActionContainer').classList.remove('hidden');
+                updateFollowButtonUI(); 
+            }
+
+            closeEditProfile(); 
+
+            const [
+                { count: postCount }, 
+                { count: commentCount },
+                { count: followersCount },
+                { count: followingCount }
+            ] = await Promise.all([
+                supabaseClient.from('posts').select('*', { count: 'exact', head: true }).eq('username', username),
+                supabaseClient.from('comments').select('*', { count: 'exact', head: true }).eq('username', username),
+                supabaseClient.from('follows').select('*', { count: 'exact', head: true }).eq('following_username', username),
+                supabaseClient.from('follows').select('*', { count: 'exact', head: true }).eq('follower_username', username)
+            ]);
+
+            document.getElementById('statPostCount').innerText = postCount || 0;
+            document.getElementById('statCommentCount').innerText = commentCount || 0;
+            document.getElementById('statFollowersCount').innerText = followersCount || 0;
+            document.getElementById('statFollowingCount').innerText = followingCount || 0;
+
+            const { data: profileData } = await supabaseClient
                 .from('profiles')
                 .select('*')
-                .eq('username', username)
-                .single();
-
-            // 2. นับจำนวนโพสต์จริงของผู้ใช้
-            const { count: postsCount } = await supabaseClient
-                .from('posts')
-                .select('id', { count: 'exact', head: true })
                 .eq('username', username);
 
-            // 3. นับจำนวนคอมเมนต์จริงของผู้ใช้
-            const { count: commentsCount } = await supabaseClient
-                .from('comments')
-                .select('id', { count: 'exact', head: true })
-                .eq('username', username);
+            const avatarTxtNode = document.getElementById('profileAvatarTxt');
+            const avatarImgNode = document.getElementById('profileAvatarImg');
 
-            // อัปเดตข้อมูลบนหน้าต่าง UI โปรไฟล์
-            document.getElementById('profileName').innerText = username;
-            
-            // การแสดงผลรูปภาพโปรไฟล์ (ถ้ามีลิงก์ภาพให้ดึงมาแสดงแทนตัวอักษร)
-            const profileAvatarDiv = document.getElementById('profileAvatar');
-            const editAvatarPreviewDiv = document.getElementById('editAvatarPreview');
-            const defaultAvatarChar = username ? username[0].toUpperCase() : 'U';
-
-            if (profile && profile.avatar_url) {
-                profileAvatarDiv.innerHTML = `<img src="${profile.avatar_url}" class="w-full h-full object-cover">`;
-                editAvatarPreviewDiv.innerHTML = `<img src="${profile.avatar_url}" class="w-full h-full object-cover">`;
-                // เก็บค่าปัจจุบันไว้ในตัวแปรบนหน้าต่างเพื่อความเร็ว
-                profileAvatarDiv.dataset.currentUrl = profile.avatar_url;
-            } else {
-                profileAvatarDiv.innerHTML = defaultAvatarChar;
-                editAvatarPreviewDiv.innerHTML = defaultAvatarChar;
-                profileAvatarDiv.dataset.currentUrl = "";
-            }
-
-            document.getElementById('statPostCount').innerText = postsCount || 0;
-            document.getElementById('statCommentCount').innerText = commentsCount || 0;
-
-            if (profile) {
-                document.getElementById('profileExpertise').innerText = profile.expertise ? "ถนัดวิชา: " + profile.expertise : "ยังไม่มีข้อมูลวิชาที่ถนัด";
-                document.getElementById('profileBio').innerText = profile.bio || "ไม่มีคำแนะนำตัว";
+            if (profileData && profileData[0]) {
+                const profile = profileData[0];
+                document.getElementById('profileExpertise').innerText = profile.expertise ? `ถนัดวิชา: ${profile.expertise}` : "ยังไม่มีข้อมูลวิชาที่ถนัด";
+                document.getElementById('profileBio').innerText = profile.bio ? profile.bio : "ไม่มีคำแนะนำตัว";
+                
                 document.getElementById('editExpertiseInput').value = profile.expertise || "";
                 document.getElementById('editBioInput').value = profile.bio || "";
+
+                if (profile.avatar_url) {
+                    avatarImgNode.src = profile.avatar_url;
+                    avatarImgNode.classList.remove('hidden');
+                    avatarTxtNode.classList.add('hidden');
+                } else {
+                    avatarImgNode.classList.add('hidden');
+                    avatarTxtNode.classList.remove('hidden');
+                    avatarTxtNode.innerText = username.charAt(0).toUpperCase();
+                }
             } else {
                 document.getElementById('profileExpertise').innerText = "ยังไม่มีข้อมูลวิชาที่ถนัด";
                 document.getElementById('profileBio').innerText = "ไม่มีคำแนะนำตัว";
                 document.getElementById('editExpertiseInput').value = "";
                 document.getElementById('editBioInput').value = "";
-            }
-
-            // ตรวจสอบสิทธิ์ว่าใช่โปรไฟล์ของเราเองหรือไม่ หากใช่จะแสดงปุ่มแก้ไขให้
-            const editProfileBtn = document.getElementById('editProfileBtn');
-            if (currentUser && currentUser.name === username) {
-                editProfileBtn.classList.remove('hidden');
-            } else {
-                editProfileBtn.classList.add('hidden');
-            }
-
-            toggleProfileEdit(false);
-            document.getElementById('profileModal').classList.remove('hidden');
-        }
-
-        function openMyProfile() {
-            const currentUser = JSON.parse(localStorage.getItem('peerUser'));
-            if (currentUser) {
-                openProfile(currentUser.name);
-            }
-        }
-
-        function closeProfileModal() {
-            document.getElementById('profileModal').classList.add('hidden');
-        }
-
-        function toggleProfileEdit(isEdit) {
-            if (isEdit) {
-                document.getElementById('profileViewMode').classList.add('hidden');
-                document.getElementById('profileEditMode').classList.remove('hidden');
-            } else {
-                document.getElementById('profileViewMode').classList.remove('hidden');
-                document.getElementById('profileEditMode').classList.add('hidden');
-                // รีเซ็ตค่า Input เลือกรูปภาพ
-                document.getElementById('profileAvatarInput').value = "";
-            }
-        }
-
-        async function saveProfile() {
-            const currentUser = JSON.parse(localStorage.getItem('peerUser'));
-            if (!currentUser) return;
-
-            const saveBtn = document.getElementById('saveProfileBtn');
-            saveBtn.disabled = true;
-            saveBtn.innerText = "กำลังบันทึก...";
-
-            const expertise = document.getElementById('editExpertiseInput').value.trim();
-            const bio = document.getElementById('editBioInput').value.trim();
-            const avatarInput = document.getElementById('profileAvatarInput');
-
-            let uploadedAvatarUrl = document.getElementById('profileAvatar').dataset.currentUrl || null;
-
-            // ตรวจสอบการเลือกรูปโปรไฟล์ใหม่เพื่ออัปโหลด
-            if (avatarInput.files && avatarInput.files[0]) {
-                const file = avatarInput.files[0];
-                const fileExt = file.name.split('.').pop();
                 
-                // ตั้งชื่อไฟล์โดยใช้ตัวเลขสุ่มและเวลา เพื่อหลีกเลี่ยงภาษาไทยที่ระบบจัดเก็บไฟล์ไม่รองรับ
-                const fileName = `avatar-${Date.now()}-${Math.floor(Math.random() * 10000)}.${fileExt}`;
-                
-                const { data: storageData, error: storageError } = await supabaseClient
-                    .storage
-                    .from('post-images') // แชร์ Bucket โพสต์หลักเพื่อความเรียบง่ายและไม่ต้องตั้งค่าสิทธิ์เพิ่มใหม่
-                    .upload(fileName, file);
+                avatarImgNode.classList.add('hidden');
+                avatarTxtNode.classList.remove('hidden');
+                avatarTxtNode.innerText = username.charAt(0).toUpperCase();
+            }
 
-                if (storageError) {
-                    alert("อัปโหลดรูปภาพโปรไฟล์ล้มเหลว: " + storageError.message);
-                    saveBtn.disabled = false;
-                    saveBtn.innerText = "บันทึกข้อมูล";
-                    return;
+            const { data: historyPosts, error: histErr } = await supabaseClient
+                .from('posts')
+                .select('*')
+                .eq('username', username)
+                .order('created_at', { ascending: false });
+
+            const historyListContainer = document.getElementById('profilePostsHistoryList');
+            const badgeCount = document.getElementById('historyCountBadge');
+
+            if (histErr || !historyPosts || historyPosts.length === 0) {
+                badgeCount.innerText = "0 โพสต์";
+                historyListContainer.innerHTML = `
+                    <p class="text-center text-[11px] text-gray-400 py-6 italic bg-gray-50/50 rounded-xl border border-dashed border-gray-200">
+                        ผู้ใช้นี้ยังไม่มีการบันทึกหรือแชร์โพสต์วิชาเรียนไว้ในระบบ
+                    </p>
+                `;
+                return;
+            }
+
+            badgeCount.innerText = `${historyPosts.length} โพสต์`;
+            let historyHtml = "";
+            
+            historyPosts.forEach(hPost => {
+                let hImageHtml = "";
+                if (hPost.image_url) {
+                    hImageHtml = `
+                        <div class="mt-2 rounded-lg overflow-hidden border border-gray-100 max-h-36 bg-gray-50 cursor-zoom-in" onclick="openLightbox('${hPost.image_url}')">
+                            <img src="${hPost.image_url}" class="w-full h-full object-cover" alt="History attachment">
+                        </div>
+                    `;
                 }
 
-                const { data: urlData } = supabaseClient
-                    .storage
-                    .from('post-images')
-                    .getPublicUrl(fileName);
-                
-                uploadedAvatarUrl = urlData.publicUrl;
-            }
+                historyHtml += `
+                    <div class="bg-white p-3.5 rounded-xl border border-gray-100 shadow-sm space-y-1.5 text-xs">
+                        <div class="flex justify-between items-center text-[10px] text-gray-400">
+                            <span class="font-bold text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-md"><i class="fa-regular fa-bookmark mr-1"></i>คลังความรู้</span>
+                            <span>${new Date(hPost.created_at).toLocaleDateString('th-TH')}</span>
+                        </div>
+                        <p class="text-gray-700 leading-relaxed whitespace-pre-line">${hPost.content}</p>
+                        ${hImageHtml}
+                    </div>
+                `;
+            });
+            historyListContainer.innerHTML = historyHtml;
+        }
 
-            // บันทึกข้อมูลและพาร์ทรูปภาพลงฐานข้อมูล profiles
+        function toggleMaximizeProfile() {
+            isProfileMaximized = !isProfileMaximized;
+            applyProfileModalSize();
+        }
+
+        function applyProfileModalSize() {
+            const modalBox = document.getElementById('profileModalBox');
+            const icon = document.getElementById('maximizeIcon');
+            const btn = document.getElementById('maximizeProfileBtn');
+
+            if (isProfileMaximized) {
+                modalBox.classList.remove('max-w-xl', 'max-h-[90vh]');
+                modalBox.classList.add('max-w-4xl', 'h-[95vh]', 'max-h-[95vh]');
+                icon.className = "fa-solid fa-compress";
+                btn.title = "ย่อหน้าต่างลง";
+            } else {
+                modalBox.classList.remove('max-w-4xl', 'h-[95vh]', 'max-h-[95vh]');
+                modalBox.classList.add('max-w-xl', 'max-h-[90vh]');
+                icon.className = "fa-solid fa-expand";
+                btn.title = "ขยายเต็มจอ";
+            }
+        }
+
+        function closeProfileModal() { document.getElementById('profileModal').classList.add('hidden'); }
+
+        function openEditProfile() {
+            document.getElementById('editProfileSection').classList.remove('hidden');
+            document.getElementById('openEditProfileBtn').classList.add('hidden');
+        }
+        function closeEditProfile() {
+            document.getElementById('editProfileSection').classList.add('hidden');
+            if(currentUser && currentUser.name === viewedProfileUsername) {
+                document.getElementById('openEditProfileBtn').classList.remove('hidden');
+            }
+        }
+
+        async function handleAvatarUpload(event) {
+            const file = event.target.files[0];
+            if (!file || !currentUser) return;
+
+            const saveBtn = document.getElementById('saveProfileBtn');
+            saveBtn.innerText = "กำลังอัปโหลดรูป...";
+            saveBtn.disabled = true;
+
+            const fileExtension = file.name.split('.').pop();
+            const secureEnglishFileName = `avatar-user-${Date.now()}-${Math.floor(Math.random() * 1000)}.${fileExtension}`;
+
+            const { data: uploadData, error: uploadError } = await supabaseClient
+                .storage
+                .from('avatars')
+                .upload(secureEnglishFileName, file, { upsert: true });
+
+            if (uploadError) { showToast("อัปโหลดรูปภาพโปรไฟล์ล้มเหลว: " + uploadError.message, "error"); saveBtn.innerText = "บันทึกประวัติ"; saveBtn.disabled = false; return; }
+
+            const { data: publicUrlData } = supabaseClient
+                .storage
+                .from('avatars')
+                .getPublicUrl(secureEnglishFileName);
+
+            const fullPublicAvatarUrl = publicUrlData.publicUrl;
+
+            const { error: dbError } = await supabaseClient
+                .from('profiles')
+                .upsert({
+                    username: currentUser.name,
+                    avatar_url: fullPublicAvatarUrl,
+                    updated_at: new Date().toISOString()
+                });
+
+            if (dbError) {
+                showToast("บันทึกอวาตาร์ลงฐานข้อมูลไม่สำเร็จ: " + dbError.message, "error");
+            } else {
+                showToast("เปลี่ยนรูปอวาตาร์สำเร็จแล้ว!", "success");
+                await openProfileModal(currentUser.name);
+                updateNavbarUI();
+                fetchPosts();
+                updateFollowingBuddiesBar();
+                
+                document.getElementById('createPostAvatar').innerHTML = `<img src="${fullPublicAvatarUrl}" class="w-full h-full rounded-full object-cover">`;
+            }
+            saveBtn.innerText = "บันทึกประวัติ";
+            saveBtn.disabled = false;
+        }
+
+        async function saveProfileData() {
+            if (!currentUser) return;
+            const expertise = document.getElementById('editExpertiseInput').value.trim();
+            const bio = document.getElementById('editBioInput').value.trim();
+
+            const saveBtn = document.getElementById('saveProfileBtn');
+            saveBtn.innerText = "กำลังบันทึก...";
+
             const { error } = await supabaseClient
                 .from('profiles')
                 .upsert({
                     username: currentUser.name,
                     expertise: expertise,
                     bio: bio,
-                    avatar_url: uploadedAvatarUrl,
                     updated_at: new Date().toISOString()
                 });
 
             if (error) {
-                alert("บันทึกโปรไฟล์ไม่สำเร็จ: " + error.message);
+                showToast("บันทึกประวัติโปรไฟล์ล้มเหลว: " + error.message, "error");
             } else {
-                alert("บันทึกการเปลี่ยนแปลงโปรไฟล์เรียบร้อยแล้ว!");
-                // อัปเดตรูปภาพที่เมนูด้านบนทันที
-                if (uploadedAvatarUrl) {
-                    loadedProfiles[currentUser.name] = uploadedAvatarUrl;
-                }
-                updateNavAndGreetingAvatar(currentUser.name);
-                openProfile(currentUser.name); // โหลดโปรไฟล์ขึ้นมาแสดงผลใหม่
-                fetchPosts(); // รีเฟรชฟีดหลักทั้งหมดเพื่ออัปเดตรูปหน้าคอมเมนต์และโพสต์
+                showToast("อัปเดตประวัติสไตล์การเรียนเรียบร้อย!", "success");
+                closeEditProfile();
+                openProfileModal(currentUser.name); 
             }
-
-            saveBtn.disabled = false;
-            saveBtn.innerText = "บันทึกข้อมูล";
+            saveBtn.innerText = "บันทึกประวัติ";
         }
 
-        // --- STREAMING_CHUNK: Fetching posts and comments... ---
-        // --- 🔄 ฟังก์ชันสืบค้นข้อมูลและจัดเรียงฟีดโพสต์ ---
+        async function updateFollowButtonUI() {
+            const followBtn = document.getElementById('followBtn');
+            if (!currentUser || !viewedProfileUsername) return;
 
-        async function fetchPosts() {
-            const currentUser = JSON.parse(localStorage.getItem('peerUser'));
-            const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-
-            // ดึงข้อมูลโปรไฟล์ผู้ใช้ทั้งหมดมาเตรียมทำแผนที่ดึงข้อมูลโปรไฟล์ (Map) เพื่อไม่ให้แสดงผลรูปภาพโปรไฟล์ล่าช้า
-            const { data: allProfiles } = await supabaseClient
-                .from('profiles')
-                .select('username, avatar_url');
-
-            const profileMap = {};
-            if (allProfiles) {
-                allProfiles.forEach(p => {
-                    profileMap[p.username] = p.avatar_url;
-                });
-            }
-
-            const { data: posts, error: postError } = await supabaseClient
-                .from('posts')
+            const { data, error } = await supabaseClient
+                .from('follows')
                 .select('*')
-                .gt('created_at', twentyFourHoursAgo) 
-                .order('created_at', { ascending: false });
+                .eq('follower_username', currentUser.name)
+                .eq('following_username', viewedProfileUsername);
 
-            const { data: comments, error: commentError } = await supabaseClient
-                .from('comments')
-                .select('*')
-                .order('created_at', { ascending: true });
-
-            if (postError || commentError) {
-                console.error('Error:', postError || commentError);
-                document.getElementById('feedContainer').innerHTML = `<p class="text-center text-red-500 text-sm">โหลดข้อมูลไม่สำเร็จ</p>`;
-                return;
+            if (data && data.length > 0) {
+                followBtn.className = "text-xs px-4 py-1.5 rounded-full font-medium shadow-sm transition border border-gray-200 bg-gray-50 text-gray-500 hover:bg-red-50 hover:text-red-600 hover:border-red-200 mx-auto flex items-center space-x-1";
+                followBtn.innerHTML = `<i class="fa-solid fa-user-check"></i> <span>กำลังติดตาม (ยกเลิก)</span>`;
+            } else {
+                followBtn.className = "text-xs px-4 py-1.5 rounded-full font-medium shadow-sm transition border border-indigo-600 bg-indigo-600 text-white hover:bg-indigo-700 mx-auto flex items-center space-x-1";
+                followBtn.innerHTML = `<i class="fa-solid fa-user-plus"></i> <span>กดติดตามคู่หูเรียน</span>`;
             }
-
-            const feedContainer = document.getElementById('feedContainer');
-            if (!posts || posts.length === 0) {
-                feedContainer.innerHTML = '<p class="text-center text-gray-400 text-sm py-8">ไม่มีโพสต์ในช่วง 24 ชั่วโมงที่ผ่านมา</p>';
-                return;
-            }
-
-            feedContainer.innerHTML = ''; 
-
-            posts.forEach(post => {
-                const isMyPost = currentUser && currentUser.name === post.username;
-                const deleteButtonHtml = isMyPost 
-                    ? `<button onclick="deletePost(${post.id})" class="text-red-400 hover:text-red-600 p-1 rounded-lg transition duration-150" title="ลบโพสต์"><i class="fa-regular fa-trash-can"></i></button>`
-                    : '';
-
-                const imageHtml = post.image_url 
-                    ? `<div class="mt-3 overflow-hidden rounded-xl border border-gray-100 max-h-80 bg-gray-50 flex justify-center items-center"><img src="${post.image_url}" class="max-h-80 object-contain w-full"></div>`
-                    : '';
-
-                // การสืบค้นรูปโปรไฟล์ของผู้โพสต์
-                const postUserAvatarUrl = profileMap[post.username];
-                const postUserAvatarHtml = postUserAvatarUrl
-                    ? `<img src="${postUserAvatarUrl}" class="w-full h-full object-cover">`
-                    : (post.username ? post.username[0].toUpperCase() : 'U');
-
-                const postComments = comments ? comments.filter(c => c.post_id === post.id) : [];
-                let commentsListHtml = '';
-                
-                postComments.forEach(comment => {
-                    const isMyComment = currentUser && currentUser.name === comment.username;
-                    const deleteCommentBtnHtml = isMyComment 
-                        ? `<button onclick="deleteComment(${comment.id})" class="text-red-400 hover:text-red-600 p-1 transition duration-150 ml-2" title="ลบความคิดเห็น"><i class="fa-regular fa-trash-can text-[10px]"></i></button>`
-                        : '';
-
-                    // การสืบค้นรูปโปรไฟล์ของคนคอมเมนต์
-                    const commentUserAvatarUrl = profileMap[comment.username];
-                    const commentUserAvatarHtml = commentUserAvatarUrl
-                        ? `<img src="${commentUserAvatarUrl}" class="w-full h-full object-cover">`
-                        : (comment.username ? comment.username[0].toUpperCase() : 'U');
-
-                    commentsListHtml += `
-                        <div class="bg-gray-50 p-2.5 rounded-xl border border-gray-100 text-xs">
-                            <div class="flex justify-between items-start mb-1">
-                                <div class="flex items-center space-x-2">
-                                    <div onclick="openProfile('${comment.username}')" class="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-[9px] overflow-hidden cursor-pointer">
-                                        ${commentUserAvatarHtml}
-                                    </div>
-                                    <span onclick="openProfile('${comment.username}')" class="font-semibold text-indigo-600 cursor-pointer hover:underline">${comment.username}</span>
-                                </div>
-                                <div class="flex items-center space-x-1">
-                                    <span class="text-[10px] text-gray-400">${new Date(comment.created_at).toLocaleTimeString('th-TH')}</span>
-                                    ${deleteCommentBtnHtml}
-                                </div>
-                            </div>
-                            <p class="text-gray-700 ml-7">${comment.content}</p>
-                        </div>
-                    `;
-                });
-
-                const postCard = document.createElement('div');
-                postCard.className = "bg-white p-4 rounded-2xl shadow-sm border border-gray-100 space-y-3";
-                postCard.innerHTML = `
-                    <div class="flex justify-between items-start">
-                        <div class="flex items-center space-x-3">
-                            <div onclick="openProfile('${post.username}')" class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold cursor-pointer hover:scale-105 transition overflow-hidden">
-                                ${postUserAvatarHtml}
-                            </div>
-                            <div>
-                                <h4 onclick="openProfile('${post.username}')" class="font-medium text-sm text-gray-900 cursor-pointer hover:underline">${post.username || 'ผู้ใช้ทั่วไป'}</h4>
-                                <p class="text-xs text-gray-400">${post.created_at ? new Date(post.created_at).toLocaleTimeString('th-TH') : 'เมื่อสักครู่'}</p>
-                            </div>
-                        </div>
-                        <div class="flex items-center space-x-2">
-                            ${deleteButtonHtml}
-                        </div>
-                    </div>
-                    
-                    <p class="text-gray-700 text-sm">${post.content}</p>
-                    ${imageHtml}
-                    
-                    <div class="flex justify-between items-center text-xs text-gray-500 pt-1 border-t border-gray-50">
-                        <span class="flex items-center space-x-1"><i class="fa-regular fa-comment text-indigo-500"></i> <span class="font-medium text-gray-700">${postComments.length} ความคิดเห็น</span></span>
-                        <span class="text-indigo-500 font-medium">${post.tag || ''}</span>
-                    </div>
-
-                    <div class="space-y-2 mt-2 pt-2 border-t border-gray-100">
-                        <div class="max-h-40 overflow-y-auto space-y-2">
-                            ${commentsListHtml}
-                        </div>
-                        
-                        <div class="flex space-x-2 mt-2">
-                            <input type="text" id="commentInput-${post.id}" class="flex-1 bg-gray-50 p-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:border-indigo-500" placeholder="พิมพ์ช่วยตอบคำถามหรือแสดงความคิดเห็น...">
-                            <button onclick="addComment(${post.id})" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-xl text-xs font-medium transition duration-150">
-                                <i class="fa-solid fa-paper-plane"></i>
-                            </button>
-                        </div>
-                    </div>
-                `;
-                feedContainer.appendChild(postCard);
-            });
         }
 
-        // --- STREAMING_CHUNK: Managing database insertions and deletions... ---
-        async function addPost() {
-            const user = JSON.parse(localStorage.getItem('peerUser'));
-            if (!user) {
-                alert("กรุณาเข้าสู่ระบบก่อนโพสต์ครับ");
-                checkLoginStatus();
-                return;
+        async function toggleFollow() {
+            if (!currentUser) { showToast("กรุณาเข้าสู่ระบบก่อนกดติดตามเพื่อนเพื่อเป็นคู่หูเรียนครับ", "warning"); openLoginModal(); return; }
+            if (currentUser.name === viewedProfileUsername) return;
+
+            const { data } = await supabaseClient
+                .from('follows')
+                .select('*')
+                .eq('follower_username', currentUser.name)
+                .eq('following_username', viewedProfileUsername);
+
+            if (data && data.length > 0) {
+                await supabaseClient
+                    .from('follows')
+                    .delete()
+                    .eq('follower_username', currentUser.name)
+                    .eq('following_username', viewedProfileUsername);
+                showToast(`เลิกติดตามคุณ ${viewedProfileUsername} แล้ว`, "info");
+            } else {
+                await supabaseClient
+                    .from('follows')
+                    .insert([{
+                        follower_username: currentUser.name,
+                        following_username: viewedProfileUsername
+                    }]);
+                showToast(`ติดตามคู่หู ${viewedProfileUsername} สำเร็จแล้ว!`, "success");
             }
 
-            const content = document.getElementById('postContent').value;
-            let tag = document.getElementById('postTagSelect').value;
-
-            if (tag === 'custom') {
-                const customTagValue = document.getElementById('customTagInput').value.trim();
-                if (customTagValue !== "") {
-                    tag = customTagValue.startsWith('#') ? customTagValue : '#' + customTagValue;
-                } else {
-                    tag = '#ทั่วไป';
-                }
-            }
-
-            const imageInput = document.getElementById('postImageInput');
+            updateFollowButtonUI();
+            updateFollowingBuddiesBar();
             
-            if (content.trim() === "" && !imageInput.files[0]) {
-                alert("กรุณาพิมพ์ข้อความหรือแนบรูปภาพก่อนโพสต์ครับ");
-                return;
-            }
-
-            let uploadedImageUrl = null;
-
-            if (imageInput.files[0]) {
-                const file = imageInput.files[0];
-                const fileExt = file.name.split('.').pop();
-                const fileName = `${Date.now()}-${Math.floor(Math.random() * 1000)}.${fileExt}`;
-                
-                const { data: storageData, error: storageError } = await supabaseClient
-                    .storage
-                    .from('post-images')
-                    .upload(fileName, file);
-
-                if (storageError) {
-                    alert("อัปโหลดรูปภาพล้มเหลว: " + storageError.message);
-                    return;
-                }
-
-                const { data: urlData } = supabaseClient
-                    .storage
-                    .from('post-images')
-                    .getPublicUrl(fileName);
-                
-                uploadedImageUrl = urlData.publicUrl;
-            }
-
-            const { error } = await supabaseClient
-                .from('posts')
-                .insert([{ username: user.name, content: content, tag: tag, image_url: uploadedImageUrl }]);
-
-            if (error) {
-                alert("เกิดข้อผิดพลาด: " + error.message);
-            } else {
-                document.getElementById('postContent').value = "";
-                document.getElementById('customTagInput').value = "";
-                document.getElementById('postTagSelect').value = "#คณิตศาสตร์";
-                document.getElementById('customTagInput').classList.add('hidden');
-                clearSelectedImage();
-                fetchPosts(); 
-            }
+            const { count: newFollowersCount } = await supabaseClient
+                .from('follows')
+                .select('*', { count: 'exact', head: true })
+                .eq('following_username', viewedProfileUsername);
+            document.getElementById('statFollowersCount').innerText = newFollowersCount || 0;
+            
+            if (currentFeedMode === 'follow') fetchPosts();
         }
 
-        async function addComment(postId) {
-            const user = JSON.parse(localStorage.getItem('peerUser'));
-            if (!user) {
-                alert("กรุณาเข้าสู่ระบบก่อนแสดงความคิดเห็นครับ");
-                checkLoginStatus();
-                return;
-            }
-
-            const commentInput = document.getElementById(`commentInput-${postId}`);
-            const content = commentInput.value.trim();
-
-            if (content === "") {
-                alert("กรุณาพิมพ์ข้อความคอมเมนต์ก่อนส่งครับ");
-                return;
-            }
-
-            const { error } = await supabaseClient
-                .from('comments')
-                .insert([
-                    {
-                        post_id: postId,
-                        username: user.name,
-                        content: content
-                    }
-                ]);
-
-            if (error) {
-                alert("ส่งคอมเมนต์ไม่สำเร็จ: " + error.message);
-            } else {
-                commentInput.value = ""; 
-                fetchPosts(); 
-            }
+        function openLightbox(imageUrl) {
+            const lightbox = document.getElementById('lightboxModal');
+            const lightboxImg = document.getElementById('lightboxImage');
+            lightboxImg.src = imageUrl;
+            lightbox.classList.remove('opacity-0', 'pointer-events-none');
         }
-
-        async function deletePost(postId) {
-            if (confirm("คุณแน่ใจใช่ไหมว่าต้องการลบโพสต์นี้ออก")) {
-                const { error } = await supabaseClient
-                    .from('posts')
-                    .delete()
-                    .eq('id', postId);
-
-                if (error) {
-                    alert("ลบโพสต์ไม่สำเร็จ: " + error.message);
-                } else {
-                    fetchPosts();
-                }
-            }
+        function closeLightbox() {
+            const lightbox = document.getElementById('lightboxModal');
+            lightbox.classList.add('opacity-0', 'pointer-events-none');
         }
-
-        async function deleteComment(commentId) {
-            if (confirm("คุณแน่ใจใช่ไหมว่าต้องการลบความคิดเห็นนี้")) {
-                const { error } = await supabaseClient
-                    .from('comments')
-                    .delete()
-                    .eq('id', commentId);
-
-                if (error) {
-                    alert("ลบความคิดเห็นไม่สำเร็จ: " + error.message);
-                } else {
-                    fetchPosts();
-                }
-            }
-        }
-
-        document.addEventListener("DOMContentLoaded", function() {
-            checkLoginStatus();
-            fetchPosts();
-        });
     </script>
 </body>
 </html>
