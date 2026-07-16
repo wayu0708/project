@@ -513,14 +513,14 @@
 
                 const { data: uploadData, error: uploadError } = await supabaseClient
                     .storage
-                    .from('note-images')
+                    .from('post-images')
                     .upload(englishSafeName, selectedPostImageFile);
 
                 if (uploadError) { showToast("อัปโหลดไฟล์รูปภาพสรุปล้มเหลว: " + uploadError.message, "error"); return; }
                 
                 const { data: publicUrlData } = supabaseClient
                     .storage
-                    .from('note-images')
+                    .from('post-images')
                     .getPublicUrl(englishSafeName);
                 
                 uploadedImageUrl = publicUrlData.publicUrl;
@@ -572,7 +572,14 @@
 
         // ดึงรายการโพสต์และคอมเมนต์มาแสดงผลบนไทม์ไลน์หลัก
         async function fetchPosts() {
-            const feedContainer = document.getElementById('postsFeed');
+    const feedContainer = document.getElementById('postsFeed');
+    feedContainer.innerHTML = "";
+
+    const { data: postsData } = await supabaseClient.from('posts').select('*');
+    let localPosts = postsData || [];
+
+    const { data: commentsData } = await supabaseClient.from('comments').select('*');
+    let localComments = commentsData || [];
 
             let followingList = [];
             if (currentUser) {
@@ -624,8 +631,7 @@
 
             let feedHtml = "";
             posts.forEach(post => {
-                const postComments = comments ? comments.filter(c => c.post_id === post.id) : [];
-                
+                const postComments = comments ? comments.filter(c => c.post_id === post.id) : [];                
                 const authorProfile = profiles ? profiles.find(p => p.username === post.username) : null;
                 let avatarHtml = `<div class="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 font-bold flex items-center justify-center text-sm border border-indigo-100 shadow-inner flex-shrink-0">${post.username.charAt(0).toUpperCase()}</div>`;
                 if (authorProfile && authorProfile.avatar_url) {
@@ -648,7 +654,7 @@
                 postComments.forEach(comment => {
                     const isMyComment = currentUser && currentUser.name === comment.username;
                     const deleteCommentBtnHtml = isMyComment 
-                        ? `<button onclick="deleteComment(${comment.id})" class="text-red-400 hover:text-red-600 p-1 transition ml-1" title="ลบความคิดเห็น"><i class="fa-regular fa-trash-can text-[10px]"></i></button>`
+                        ? `<button onclick="event.stopPropagation(); deleteComment(${comment.id})" class="text-red-400 hover:text-red-600 p-1 transition ml-1" title="ลบความคิดเห็น"><i class="fa-regular fa-trash-can text-[10px]"></i></button>`
                         : '';
 
                     let commentAttachedImageHtml = "";
@@ -661,8 +667,7 @@
                     }
 
                     commentsListHtml += `
-                        <div class="bg-gray-50/70 p-2.5 rounded-xl border border-gray-100/60 text-xs">
-                            <div class="flex justify-between items-center mb-1">
+                    <div id="comment-${comment.id}" class="bg-gray-50/70 p-2.5 rounded-xl border border-gray-100/60 text-xs">                            <div class="flex justify-between items-center mb-1">
                                 <span class="font-semibold text-indigo-600 cursor-pointer hover:underline" onclick="openProfileModal('${comment.username}')">${comment.username}</span>
                                 <div class="flex items-center space-x-1 text-gray-400 text-[10px]">
                                     <span>${new Date(comment.created_at).toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'})} น.</span>
@@ -702,28 +707,32 @@
                             ${commentsListHtml}
                         </div>
 
-                        <!-- กล่องฟอร์มคอมเมนต์พร้อมแนบรูปภาพ -->
-                        <div class="mt-3 flex flex-col space-y-2 bg-gray-50 rounded-xl p-2 border border-gray-100 focus-within:border-indigo-400 focus-within:bg-white transition duration-150">
-                            <div class="flex items-center space-x-2">
-                                <input type="text" id="commentInput-${post.id}" class="flex-grow text-xs text-gray-700 placeholder-gray-400 bg-transparent focus:outline-none px-2" placeholder="พิมพ์ช่วยตอบคำถามหรือแสดงความคิดเห็น...">
-                                
-                                <!-- ปุ่มเลือกแนบรูปภาพคอมเมนต์ -->
-                                <label class="cursor-pointer text-gray-400 hover:text-indigo-600 transition p-1.5 rounded-lg hover:bg-gray-100 flex items-center justify-center" title="แนบภาพเฉลยคำตอบ">
-                                    <i class="fa-regular fa-image text-sm"></i>
-                                    <input type="file" id="commentImageInput-${post.id}" accept="image/*" class="hidden" onchange="handleCommentImageSelect(${post.id}, event)">
-                                </label>
+<!-- กล่องฟอร์มคอมเมนต์พร้อมแนบรูปภาพ -->
+<div class="mt-3 flex flex-col space-y-2 bg-gray-50 rounded-xl p-2 border border-gray-100 focus-within:border-indigo-200">
+  <div class="flex items-center space-x-2 w-full">
+    <!-- เพิ่ม onkeydown ให้กด Enter ได้ และใส่ flex-grow เพื่อให้ช่องพิมพ์ยาวเต็มพื้นที่ -->
+    <input type="text" id="commentInput-${post.id}" class="flex-grow bg-transparent border-0 focus:ring-0 text-sm py-1 px-2 text-gray-700 placeholder-gray-400 outline-none" placeholder="พิมพ์ข้อความตอบกลับ...">
+    
+    <!-- ปุ่มเลือกแนบรูปภาพคอมเมนต์ -->
+    <label class="cursor-pointer text-gray-400 hover:text-indigo-600 transition p-1.5 rounded-lg hover:bg-gray-100 flex-shrink-0">
+  <i class="fa-regular fa-image text-sm"></i>
+  <input type="file" id="commentImageInput-${post.id}" accept="image/*" class="hidden" onchange="handleCommentImageSelection(this, '${post.id}')">
+</label>
 
-                                <button onclick="createComment(${post.id})" class="w-8 h-8 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex items-center justify-center transition shadow-sm text-xs flex-shrink-0">
-                                    <i class="fa-regular fa-paper-plane"></i>
-                                </button>
-                            </div>
-                            <!-- แถบแสดงพรีวิวรูปภาพคอมเมนต์ก่อนกดส่ง -->
-                            <div id="commentPreviewContainer-${post.id}" class="relative max-w-[100px] hidden pt-1">
-                                <img id="commentPreview-${post.id}" class="rounded-lg border border-gray-100 max-h-16 object-cover" src="" alt="Comment Preview">
-                                <button onclick="clearCommentImageSelection(${post.id})" class="absolute -top-1 -right-1 bg-black/60 hover:bg-black/80 text-white w-4.5 h-4.5 rounded-full flex items-center justify-center text-[8px] transition"><i class="fa-solid fa-xmark"></i></button>
-                            </div>
-                        </div>
-                    </div>
+    <!-- ปุ่มส่งประเภท type="button" ดึงคำสั่งด้วยคลาส -->
+    <button type="button" data-post-id="${post.id}" class="btn-send-comment w-8 h-8 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex items-center justify-center transition shadow-sm text-xs flex-shrink-0">
+      <i class="fa-regular fa-paper-plane"></i>
+    </button>
+  </div>
+
+  <!-- แถบแสดงพรีวิวรูปภาพคอมเมนต์ก่อนส่ง (ปรับปุ่มกากบาทให้ใหญ่ขึ้นและกดง่าย) -->
+  <div id="commentPreviewContainer-${post.id}" class="relative max-w-[100px] hidden mt-1 border border-gray-200 rounded-lg p-1 bg-white group">
+    <img id="commentPreview-${post.id}" class="rounded-lg border border-gray-100 object-cover w-full h-20">
+    <button type="button" onclick="clearCommentImageSelection(${post.id})" class="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white w-5 h-5 rounded-full flex items-center justify-center shadow-md transition text-[10px] z-10 font-bold">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+  </div>
+</div>
                 `;
             });
             feedContainer.innerHTML = feedHtml;
@@ -747,74 +756,149 @@
             );
         }
 
+// ฟังก์ชันจัดการเลือกรูปภาพคอมเมนต์และแสดงตัวอย่างพรีวิว
+function handleCommentImageSelection(input, postId) {
+    const file = input.files[0];
+    if (!file) return;
+
+    // บันทึกไฟล์ลงตัวแปร Global ไว้ส่ง
+    if (!window.selectedCommentFiles) window.selectedCommentFiles = {};
+    window.selectedCommentFiles[postId] = file;
+
+    // แสดงรูปพรีวิวบนหน้าจอ
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const container = document.getElementById(`commentPreviewContainer-${postId}`);
+        const img = document.getElementById(`commentPreview-${postId}`);
+        if (container && img) {
+            img.src = e.target.result;
+            container.classList.remove('hidden');
+        }
+    };
+    reader.readAsDataURL(file);
+}
+
+// ฟังก์ชันยกเลิกรูปภาพคอมเมนต์ที่เลือก
+function clearCommentImageSelection(postId) {
+    const input = document.getElementById(`commentImageInput-${postId}`);
+    const container = document.getElementById(`commentPreviewContainer-${postId}`);
+    const img = document.getElementById(`commentPreview-${postId}`);
+    
+    if (input) input.value = '';
+    if (container) container.classList.add('hidden');
+    if (img) img.src = '';
+    
+    if (window.selectedCommentFiles) {
+        delete window.selectedCommentFiles[postId];
+    }
+}
+
         // ฟังก์ชันส่งบันทึกความคิดเห็นย่อยช่วยเพื่อนเรียน (รองรับการคอมเมนต์แนบรูปภาพ)
-        async function createComment(postId) {
-            if (!currentUser) { showToast("กรุณาลงทะเบียนหรือเข้าสู่ระบบก่อนตอบคอมเมนต์ช่วยเพื่อนครับ", "warning"); openLoginModal(); return; }
-            const inputField = document.getElementById(`commentInput-${postId}`);
-            const content = inputField.value.trim();
-            const commentFile = selectedCommentFiles[postId];
+       async function createComment(postId) {
+  console.log("ฟังก์ชัน createComment ถูกเรียกใช้งานแล้ว! โพสต์ไอดีคือ:", postId);
+  
+  if (!currentUser) {
+     showToast("กรุณาลงทะเบียนหรือเข้าสู่ระบบก่อน...", "warning");
+     openLoginModal();
+     return;
+  }
+    
+    const inputField = document.getElementById(`commentInput-${postId}`);
+    if (!inputField) {
+        console.error("ไม่พบช่องกรอกคอมเมนต์ไอดี: " + postId);
+        return;
+    }
+    
+    const content = inputField.value.trim();
+    // เปลี่ยนบรรทัดดึงไฟล์รูปภาพคอมเมนต์ให้ดึงจาก object Global
+    const commentFile = (window.selectedCommentFiles && window.selectedCommentFiles[postId]) || null;
 
-            if (!content && !commentFile) return;
+    if (!content && !commentFile) {
+        showToast("กรุณาพิมพ์ข้อความหรือแนบรูปภาพก่อนกดส่งคอมเมนต์ครับ", "warning");
+        return;
+    }
 
-            let uploadedImageUrl = null;
+    let uploadedImageUrl = null;
 
-            // ตรวจสอบว่าในคำตอบมีการแนบรูปภาพมาด้วยหรือไม่
-            if (commentFile) {
-                const cleanExtension = commentFile.name.split('.').pop();
-                const englishSafeName = `cmt-${Date.now()}-${Math.floor(Math.random() * 1000)}.${cleanExtension}`;
+    try {
+        // จัดการกรณีมีการแนบรูปภาพ
+        if (commentFile) {
+            const cleanExtension = commentFile.name.split('.').pop();
+            const englishSafeName = `cmt-${Date.now()}-${Math.floor(Math.random() * 1000)}.${cleanExtension}`;
 
-                const { data: uploadData, error: uploadError } = await supabaseClient
-                    .storage
-                    .from('note-images') // บันทึกในกล่องเก็บรูปภาพโน้ตร่วมกัน
-                    .upload(englishSafeName, commentFile);
+            const { data: uploadData, error: uploadError } = await supabaseClient
+                .storage
+                .from('post-images')
+                .upload(englishSafeName, commentFile);
 
-                if (uploadError) { showToast("อัปโหลดรูปภาพคอมเมนต์ล้มเหลว: " + uploadError.message, "error"); return; }
-                
-                const { data: publicUrlData } = supabaseClient
-                    .storage
-                    .from('note-images')
-                    .getPublicUrl(englishSafeName);
-                
+            if (uploadError) { 
+                showToast("อัปโหลดรูปภาพคอมเมนต์ล้มเหลว: " + uploadError.message, "error"); 
+                return; 
+            }
+            
+            const { data: publicUrlData } = supabaseClient
+                .storage
+                .from('post-images')
+                .getPublicUrl(englishSafeName);
+            
+            if (publicUrlData) {
                 uploadedImageUrl = publicUrlData.publicUrl;
             }
+        }
 
-            const { error } = await supabaseClient
-                .from('comments')
-                .insert([{
-                    post_id: postId,
-                    username: currentUser.name,
-                    content: content,
-                    image_url: uploadedImageUrl
-                }]);
+        // ส่งข้อมูลเข้าตาราง comments
+        const { error: dbError } = await supabaseClient
+            .from('comments')
+            .insert([{
+                post_id: parseInt(postId),
+                username: currentUser.name,
+                content: content,
+                image_url: uploadedImageUrl
+            }]);
 
-            if (error) {
-                showToast("ส่งคอมเมนต์ไม่สำเร็จ: " + error.message, "error");
-            } else {
-                inputField.value = "";
-                clearCommentImageSelection(postId);
-                showToast("ส่งความคิดเห็นช่วยเพื่อนเรียนสำเร็จ!", "success");
-                fetchPosts();
+        if (dbError) {
+            showToast("ส่งคอมเมนต์ไม่สำเร็จ: " + dbError.message, "error");
+        } else {
+            inputField.value = "";
+            clearCommentImageSelection(postId);
+            showToast("ส่งความคิดเห็นช่วยเพื่อนเรียนสำเร็จ!", "success");
+            
+            // เรียกอัปเดตหน้าฟีดใหม่หลังจากคอมเมนต์สำเร็จ
+            await fetchPosts();
+            if (typeof updateFollowingBuddiesBar === 'function') {
                 updateFollowingBuddiesBar(); 
             }
         }
-
+    } catch (err) {
+        showToast("ระบบภายในทำงานผิดพลาด: " + err.message, "error");
+        console.error(err);
+    }
+}
         // ฟังก์ชันลบข้อความคอมเมนต์ย่อยออกจากระบบ
-        function deleteComment(commentId) {
-            showConfirm(
-                "ลบความคิดเห็น?", 
-                "คุณแน่ใจใช่ไหมว่าต้องการลบข้อความตอบกลับช่วยเรียนอันนี้?", 
-                async () => {
-                    const { error } = await supabaseClient.from('comments').delete().eq('id', commentId);
-                    if (error) { 
-                        showToast("ลบความคิดเห็นไม่สำเร็จ: " + error.message, "error"); 
-                    } else { 
-                        showToast("ลบความคิดเห็นสำเร็จแล้ว", "success");
-                        fetchPosts(); 
-                        updateFollowingBuddiesBar(); 
-                    }
+function deleteComment(commentId) {
+    showConfirm(
+        "ลบความคิดเห็น?",
+        "คุณแน่ใจใช่ไหมว่าต้องการลบข้อความตอบกลับช่วยเรียนอันนี้?",
+        async () => {
+            const numericId = Number(commentId);
+            
+            const { error } = await supabaseClient
+                .from('comments')
+                .delete()
+                .eq('id', numericId);
+            
+            if (error) {
+                showToast("ลบความคิดเห็นไม่สำเร็จ: " + error.message, "error");
+            } else {
+                showToast("ลบความคิดเห็นสำเร็จแล้ว", "success");
+                await fetchPosts();
+                if (typeof updateFollowingBuddiesBar === 'function') {
+                    await updateFollowingBuddiesBar();
                 }
-            );
+            }
         }
+    );
+}
 
         // อัปเดตแถบคู่หูที่กำลังติดตามด้านบนสุด (Following Buddies Bar)
         async function updateFollowingBuddiesBar() {
@@ -1169,6 +1253,16 @@
             const lightbox = document.getElementById('lightboxModal');
             lightbox.classList.add('opacity-0', 'pointer-events-none');
         }
+        document.addEventListener('click', function(e) {
+    // หาปุ่มหรือไอคอนด้านในปุ่มที่ถูกคลิกและมี class 'btn-send-comment'
+    const button = e.target.closest('.btn-send-comment');
+    if (button) {
+        e.preventDefault();
+        const postId = button.getAttribute('data-post-id');
+        console.log("จับการคลิกจาก Event Listener ได้แล้ว! ไอดีโพสต์คือ:", postId);
+        createComment(postId);
+    }
+});
     </script>
 </body>
 </html>
